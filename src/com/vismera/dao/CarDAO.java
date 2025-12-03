@@ -42,7 +42,7 @@ public class CarDAO {
      * @return The generated car ID, or -1 if failed
      */
     public int insert(Car car) {
-        String sql = "INSERT INTO cars (make, model, year, price, category, color, mpg, image_path, notes, is_available) " +
+        String sql = "INSERT INTO cars (make, model, \"year\", price, category, color, mpg, image_path, notes, is_available) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseConfig.getConnection();
@@ -83,7 +83,7 @@ public class CarDAO {
      * @return The car, or null if not found
      */
     public Car findById(int id) {
-        String sql = "SELECT id, make, model, year, price, category, color, mpg, image_path, notes, is_available, created_at " +
+        String sql = "SELECT id, make, model, \"year\", price, category, color, mpg, image_path, notes, is_available, created_at " +
                      "FROM cars WHERE id = ?";
         
         try (Connection conn = DatabaseConfig.getConnection();
@@ -108,8 +108,8 @@ public class CarDAO {
      */
     public List<Car> findAll() {
         List<Car> cars = new ArrayList<>();
-        String sql = "SELECT id, make, model, year, price, category, color, mpg, image_path, notes, is_available, created_at " +
-                     "FROM cars ORDER BY make, model, year DESC";
+        String sql = "SELECT id, make, model, \"year\", price, category, color, mpg, image_path, notes, is_available, created_at " +
+                     "FROM cars ORDER BY make, model, \"year\" DESC";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
@@ -130,12 +130,12 @@ public class CarDAO {
      */
     public List<Car> findAvailable() {
         List<Car> cars = new ArrayList<>();
-        String sql = "SELECT c.id, c.make, c.model, c.year, c.price, c.category, c.color, c.mpg, " +
+        String sql = "SELECT c.id, c.make, c.model, c.\"year\", c.price, c.category, c.color, c.mpg, " +
                      "c.image_path, c.notes, c.is_available, c.created_at " +
                      "FROM cars c " +
                      "WHERE c.is_available = TRUE " +
                      "AND c.id NOT IN (SELECT car_id FROM loans WHERE status = 'active') " +
-                     "ORDER BY c.make, c.model, c.year DESC";
+                     "ORDER BY c.make, c.model, c.\"year\" DESC";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
@@ -157,9 +157,9 @@ public class CarDAO {
      */
     public List<Car> searchCars(String query) {
         List<Car> cars = new ArrayList<>();
-        String sql = "SELECT id, make, model, year, price, category, color, mpg, image_path, notes, is_available, created_at " +
-                     "FROM cars WHERE make LIKE ? OR model LIKE ? OR CAST(year AS CHAR) LIKE ? OR category LIKE ? " +
-                     "ORDER BY make, model, year DESC";
+        String sql = "SELECT id, make, model, \"year\", price, category, color, mpg, image_path, notes, is_available, created_at " +
+                     "FROM cars WHERE make LIKE ? OR model LIKE ? OR CAST(\"year\" AS VARCHAR) LIKE ? OR category LIKE ? " +
+                     "ORDER BY make, model, \"year\" DESC";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -188,8 +188,8 @@ public class CarDAO {
      */
     public List<Car> findByYear(int year) {
         List<Car> cars = new ArrayList<>();
-        String sql = "SELECT id, make, model, year, price, category, color, mpg, image_path, notes, is_available, created_at " +
-                     "FROM cars WHERE year = ? ORDER BY make, model";
+        String sql = "SELECT id, make, model, \"year\", price, category, color, mpg, image_path, notes, is_available, created_at " +
+                     "FROM cars WHERE \"year\" = ? ORDER BY make, model";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -214,8 +214,8 @@ public class CarDAO {
      */
     public List<Car> findByCategory(String category) {
         List<Car> cars = new ArrayList<>();
-        String sql = "SELECT id, make, model, year, price, category, color, mpg, image_path, notes, is_available, created_at " +
-                     "FROM cars WHERE category = ? ORDER BY make, model, year DESC";
+        String sql = "SELECT id, make, model, \"year\", price, category, color, mpg, image_path, notes, is_available, created_at " +
+                     "FROM cars WHERE category = ? ORDER BY make, model, \"year\" DESC";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -239,7 +239,7 @@ public class CarDAO {
      * @return true if successful
      */
     public boolean update(Car car) {
-        String sql = "UPDATE cars SET make = ?, model = ?, year = ?, price = ?, category = ?, " +
+        String sql = "UPDATE cars SET make = ?, model = ?, \"year\" = ?, price = ?, category = ?, " +
                      "color = ?, mpg = ?, image_path = ?, notes = ?, is_available = ? WHERE id = ?";
         
         try (Connection conn = DatabaseConfig.getConnection();
@@ -370,7 +370,7 @@ public class CarDAO {
      */
     public List<Integer> getDistinctYears() {
         List<Integer> years = new ArrayList<>();
-        String sql = "SELECT DISTINCT year FROM cars ORDER BY year DESC";
+        String sql = "SELECT DISTINCT \"year\" FROM cars ORDER BY \"year\" DESC";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);

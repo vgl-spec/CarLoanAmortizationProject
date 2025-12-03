@@ -1,6 +1,6 @@
 # Vismerá Inc. Car Loan Amortization System with Database
 ## Technical Documentation for Defense Presentation
-### Document Version: 2.0 (Database Integrated)
+### Document Version: 3.0 (H2 Embedded Database - No Server Required)
 
 ---
 
@@ -223,7 +223,7 @@ src/
 │   │   ├── LoanCalculation.java            # Core calculation engine
 │   │   └── LoanScenario.java               # Comparison scenario model
 │   │
-│   ├── dao/                                # DATA ACCESS LAYER (NEW)
+│   ├── dao/                                # DATA ACCESS LAYER
 │   │   ├── CustomerDAO.java                # Customer CRUD operations
 │   │   ├── CarDAO.java                     # Car CRUD operations
 │   │   ├── LoanDAO.java                    # Loan CRUD operations
@@ -231,9 +231,8 @@ src/
 │   │   ├── PaymentDAO.java                 # Payment CRUD operations
 │   │   └── AdminSettingDAO.java            # Settings CRUD operations
 │   │
-│   ├── db/                                 # DATABASE LAYER (NEW)
-│   │   ├── db_schema.sql                   # MySQL schema definition
-│   │   └── DatabaseConfig.java             # Connection management
+│   ├── config/                             # CONFIGURATION LAYER
+│   │   └── DatabaseConfig.java             # H2 connection & auto-schema
 │   │
 │   ├── controllers/                        # BUSINESS LOGIC LAYER
 │   │   ├── CarController.java              # Car inventory management
@@ -383,11 +382,23 @@ src/
 
 ### 4.1 Database Overview
 
-The system uses **MySQL 8.0+** for persistent data storage, enabling:
+The system uses **H2 Embedded Database** for persistent data storage, enabling:
+- **Zero Configuration** - No database server installation required
+- **Portable** - Database file travels with user profile
+- **Auto-Initialization** - Schema created automatically on first run
 - Customer relationship management
 - Loan lifecycle tracking
 - Payment history and reporting
 - Admin configuration persistence
+
+#### Key Benefits of H2 Embedded Database:
+| Feature | Benefit |
+|---------|--------|
+| No Server Required | Application runs standalone |
+| Single JAR (~2.5MB) | Minimal footprint |
+| Auto-Create Schema | No manual database setup |
+| MySQL Compatibility Mode | Standard SQL syntax |
+| File-Based Storage | Data persists in user directory |
 
 ### 4.2 Database Schema
 
@@ -538,17 +549,28 @@ Database: car_loan_amortization_db
 ### 4.4 Database Connection Configuration
 
 ```java
-// DatabaseConfig.java
+// DatabaseConfig.java - H2 Embedded Database
 public class DatabaseConfig {
-    private static final String URL = "jdbc:mysql://localhost:3306/car_loan_amortization_db";
-    private static final String USER = "root";
-    private static final String PASSWORD = "your_password";
+    // Database stored in user home directory: ~/.vismera/data/carloan_db
+    private static final String DB_URL = "jdbc:h2:file:" + dbPath + ";MODE=MySQL;AUTO_SERVER=TRUE";
+    private static final String DB_USER = "sa";
+    private static final String DB_PASSWORD = "";
+    
+    // Auto-initializes schema on first run
+    static {
+        Class.forName("org.h2.Driver");
+        initializeSchema(); // Creates tables if not exist
+    }
     
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
     }
 }
 ```
+
+#### Database File Location
+- **Windows**: `C:\Users\{username}\.vismera\data\carloan_db.mv.db`
+- **macOS/Linux**: `~/.vismera/data/carloan_db.mv.db`
 
 ---
 
@@ -560,9 +582,9 @@ The Data Access Object (DAO) pattern separates data persistence logic from busin
 
 ```
 ┌──────────────┐     ┌─────────┐     ┌──────────────┐
-│  Controller  │────▶│   DAO   │────▶│   Database   │
+│  Controller  │────▶│   DAO   │────▶│   H2 File    │
 └──────────────┘     └─────────┘     └──────────────┘
-     (Logic)         (Persistence)      (MySQL)
+     (Logic)         (Persistence)      (Embedded)
 ```
 
 ### 5.2 DAO Classes
@@ -765,7 +787,7 @@ public class ReportController {
 | **MVC Pattern** | Model-View-Controller architectural pattern | Separates data, UI, and logic |
 | **DAO Pattern** | Data Access Object - separates data persistence from logic | DAOs handle database operations |
 | **Singleton Pattern** | Design pattern ensuring only one instance exists | Controllers use this pattern |
-| **JDBC** | Java Database Connectivity API | Connects Java to MySQL |
+| **JDBC** | Java Database Connectivity API | Connects Java to H2 database |
 | **CardLayout** | Swing layout manager for switching between panels | Navigation in MainFrame |
 | **JDialog** | Modal popup window | LoanSummaryDialog |
 | **JTable** | Swing component for tabular data | Amortization schedule display |

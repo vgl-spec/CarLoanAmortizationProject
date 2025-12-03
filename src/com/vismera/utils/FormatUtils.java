@@ -1,8 +1,6 @@
 package com.vismera.utils;
 
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.util.Locale;
 
 /**
  * Utility class for formatting currency, percentages, and parsing numbers.
@@ -10,15 +8,17 @@ import java.util.Locale;
  */
 public class FormatUtils {
     
-    private static final NumberFormat CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(Locale.US);
+    // Philippine Peso currency symbol
+    private static final String CURRENCY_SYMBOL = "₱";
+    private static final DecimalFormat CURRENCY_FORMAT = new DecimalFormat("#,##0.00");
     private static final DecimalFormat PERCENTAGE_FORMAT = new DecimalFormat("0.00%");
     private static final DecimalFormat RATE_FORMAT = new DecimalFormat("0.00");
 
     /**
-     * Format a double value as currency ($XX,XXX.XX)
+     * Format a double value as currency (₱XX,XXX.XX)
      */
     public static String formatCurrency(double amount) {
-        return CURRENCY_FORMAT.format(amount);
+        return CURRENCY_SYMBOL + CURRENCY_FORMAT.format(amount);
     }
 
     /**
@@ -75,8 +75,8 @@ public class FormatUtils {
             return defaultValue;
         }
         try {
-            // Remove currency symbols and commas
-            String cleaned = text.replaceAll("[\\$,\\s]", "").trim();
+            // Remove currency symbols (₱, $, P) and commas
+            String cleaned = text.replaceAll("[₱\\$P,\\s]", "").trim();
             return Double.parseDouble(cleaned);
         } catch (NumberFormatException e) {
             return defaultValue;

@@ -124,7 +124,7 @@ public class LoanDAO {
     public Loan findByIdWithDetails(int id) {
         String sql = "SELECT l.*, " +
                      "c.full_name, c.contact_number, c.email, c.address, c.created_at as customer_created, " +
-                     "car.make, car.model, car.year as car_year, car.price as car_price, car.category, " +
+                     "car.make, car.model, car.\"year\" as car_year, car.price as car_price, car.category, " +
                      "car.color, car.mpg, car.image_path, car.notes as car_notes, car.is_available, car.created_at as car_created " +
                      "FROM loans l " +
                      "JOIN customers c ON l.customer_id = c.id " +
@@ -210,7 +210,7 @@ public class LoanDAO {
         List<Loan> loans = new ArrayList<>();
         String sql = "SELECT l.*, " +
                      "c.full_name, c.contact_number, c.email, " +
-                     "car.make, car.model, car.year as car_year, car.price as car_price " +
+                     "car.make, car.model, car.\"year\" as car_year, car.price as car_price " +
                      "FROM loans l " +
                      "JOIN customers c ON l.customer_id = c.id " +
                      "JOIN cars car ON l.car_id = car.id " +
@@ -315,7 +315,7 @@ public class LoanDAO {
         List<Loan> loans = new ArrayList<>();
         String sql = "SELECT l.*, " +
                      "c.full_name, c.contact_number, c.email, " +
-                     "car.make, car.model, car.year as car_year, car.price as car_price " +
+                     "car.make, car.model, car.\"year\" as car_year, car.price as car_price " +
                      "FROM loans l " +
                      "JOIN customers c ON l.customer_id = c.id " +
                      "JOIN cars car ON l.car_id = car.id " +

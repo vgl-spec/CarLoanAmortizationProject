@@ -248,13 +248,14 @@ public class LoanFormDialog extends JDialog {
             customerCombo.addItem(new CustomerItem(customer, customer.getFullName()));
         }
         
-        // Load available cars
+        // Load all cars from database
         CarController carController = CarController.getInstance();
         carController.setUseDatabase(true);
-        List<Car> cars = carController.getAvailableCars();
+        List<Car> cars = carController.getAllCars();
         carCombo.addItem(new CarItem(null, "-- Select Car --"));
         for (Car car : cars) {
-            carCombo.addItem(new CarItem(car, car.getDisplayName() + " - $" + car.getPriceBigDecimal()));
+            String availability = car.isAvailable() ? "" : " [In Use]";
+            carCombo.addItem(new CarItem(car, car.getDisplayName() + " - ₱" + car.getPriceBigDecimal() + availability));
         }
     }
     

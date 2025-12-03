@@ -217,6 +217,8 @@ public class ReportsPanel extends JPanel {
         panel.add(scrollPane, BorderLayout.CENTER);
         
         reportContentPanel.add(panel, BorderLayout.CENTER);
+        reportContentPanel.revalidate();
+        reportContentPanel.repaint();
     }
     
     private void generateOverdueReport() {
@@ -279,6 +281,8 @@ public class ReportsPanel extends JPanel {
         panel.add(scrollPane, BorderLayout.CENTER);
         
         reportContentPanel.add(panel, BorderLayout.CENTER);
+        reportContentPanel.revalidate();
+        reportContentPanel.repaint();
     }
     
     private void generateMonthlySummary() {
@@ -339,6 +343,8 @@ public class ReportsPanel extends JPanel {
             new Color(231, 76, 60)), gbc);
         
         reportContentPanel.add(panel, BorderLayout.CENTER);
+        reportContentPanel.revalidate();
+        reportContentPanel.repaint();
     }
     
     private JPanel createStatCard(String label, String value, Color color) {
@@ -432,6 +438,8 @@ public class ReportsPanel extends JPanel {
         panel.add(scrollPane, BorderLayout.CENTER);
         
         reportContentPanel.add(panel, BorderLayout.CENTER);
+        reportContentPanel.revalidate();
+        reportContentPanel.repaint();
     }
     
     private void setupTable(JTable table) {

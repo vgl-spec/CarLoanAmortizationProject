@@ -145,9 +145,9 @@ public class CalculatePanel extends JPanel {
         panel.add(header);
         panel.add(Box.createVerticalStrut(15));
         
-        carPriceField = createLabeledField(panel, "Car Price ($)", "0.00");
+        carPriceField = createLabeledField(panel, "Car Price (₱)", "0.00");
         salesTaxField = createLabeledField(panel, "Sales Tax Rate (%)", "8.0");
-        registrationFeeField = createLabeledField(panel, "Registration Fee ($)", "500.00");
+        registrationFeeField = createLabeledField(panel, "Registration Fee (₱)", "500.00");
         
         return panel;
     }
@@ -164,8 +164,8 @@ public class CalculatePanel extends JPanel {
         panel.add(header);
         panel.add(Box.createVerticalStrut(15));
         
-        downPaymentField = createLabeledField(panel, "Down Payment ($)", "0.00");
-        tradeInValueField = createLabeledField(panel, "Trade-In Value ($)", "0.00");
+        downPaymentField = createLabeledField(panel, "Down Payment (₱)", "0.00");
+        tradeInValueField = createLabeledField(panel, "Trade-In Value (₱)", "0.00");
         
         return panel;
     }
@@ -222,7 +222,7 @@ public class CalculatePanel extends JPanel {
         
         penaltyRateField = createLabeledField(panel, "Penalty Rate (%)", "2.0");
         missedPaymentsField = createLabeledField(panel, "Simulated Missed Payments", "0");
-        extraPaymentField = createLabeledField(panel, "Extra Payment Per Month ($)", "0.00");
+        extraPaymentField = createLabeledField(panel, "Extra Payment Per Month (₱)", "0.00");
         
         return panel;
     }
@@ -239,10 +239,10 @@ public class CalculatePanel extends JPanel {
         panel.add(header);
         panel.add(Box.createVerticalStrut(15));
         
-        totalCostLabel = createSummaryRow(panel, "Total Vehicle Cost:", "$0.00");
-        taxAmountLabel = createSummaryRow(panel, "Tax Amount:", "$0.00");
+        totalCostLabel = createSummaryRow(panel, "Total Vehicle Cost:", "₱0.00");
+        taxAmountLabel = createSummaryRow(panel, "Tax Amount:", "₱0.00");
         downPlusTradeLabel = createSummaryRow(panel, "Down Payment + Trade-In:", "$0.00");
-        amountFinancedLabel = createSummaryRow(panel, "Amount Financed:", "$0.00");
+        amountFinancedLabel = createSummaryRow(panel, "Amount Financed:", "₱0.00");
         amountFinancedLabel.setForeground(UIStyler.PRIMARY_BLUE);
         amountFinancedLabel.setFont(UIStyler.HEADER_FONT);
         

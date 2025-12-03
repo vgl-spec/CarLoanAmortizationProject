@@ -195,9 +195,9 @@ public class LoanManagementPanel extends JPanel {
             protected List<Loan> doInBackground() {
                 String status = (String) statusFilter.getSelectedItem();
                 if (status == null || "All Status".equals(status)) {
-                    return loanController.getAllLoans();
+                    return loanController.getAllLoansWithDetails();
                 } else {
-                    return loanController.getLoansByStatus(status.toLowerCase());
+                    return loanController.getLoansByStatusWithDetails(status.toLowerCase());
                 }
             }
             
@@ -267,7 +267,7 @@ public class LoanManagementPanel extends JPanel {
         int modelRow = loanTable.convertRowIndexToModel(selectedRow);
         int loanId = (Integer) tableModel.getValueAt(modelRow, 0);
         
-        Loan loan = loanController.getLoanById(loanId);
+        Loan loan = loanController.getLoanWithDetails(loanId);
         if (loan == null) {
             JOptionPane.showMessageDialog(this,
                 "Loan not found.",

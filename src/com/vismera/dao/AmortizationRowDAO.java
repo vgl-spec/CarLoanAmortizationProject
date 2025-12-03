@@ -45,7 +45,7 @@ public class AmortizationRowDAO {
     public int insert(AmortizationRow row) {
         String sql = "INSERT INTO amortization_rows (loan_id, period_index, due_date, opening_balance, " +
                      "scheduled_payment, principal_paid, interest_paid, penalty_amount, extra_payment, " +
-                     "closing_balance, is_paid, paid_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "closing_balance, paid, paid_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -92,7 +92,7 @@ public class AmortizationRowDAO {
         
         String sql = "INSERT INTO amortization_rows (loan_id, period_index, due_date, opening_balance, " +
                      "scheduled_payment, principal_paid, interest_paid, penalty_amount, extra_payment, " +
-                     "closing_balance, is_paid, paid_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "closing_balance, paid, paid_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -223,7 +223,7 @@ public class AmortizationRowDAO {
      */
     public List<AmortizationRow> findUnpaidByLoanId(int loanId) {
         List<AmortizationRow> rows = new ArrayList<>();
-        String sql = "SELECT * FROM amortization_rows WHERE loan_id = ? AND is_paid = FALSE ORDER BY period_index";
+        String sql = "SELECT * FROM amortization_rows WHERE loan_id = ? AND paid = FALSE ORDER BY period_index";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -248,7 +248,7 @@ public class AmortizationRowDAO {
      */
     public List<AmortizationRow> findOverdueByLoanId(int loanId) {
         List<AmortizationRow> rows = new ArrayList<>();
-        String sql = "SELECT * FROM amortization_rows WHERE loan_id = ? AND is_paid = FALSE AND due_date < CURDATE() ORDER BY period_index";
+        String sql = "SELECT * FROM amortization_rows WHERE loan_id = ? AND paid = FALSE AND due_date < CURRENT_DATE ORDER BY period_index";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -274,7 +274,7 @@ public class AmortizationRowDAO {
     public boolean update(AmortizationRow row) {
         String sql = "UPDATE amortization_rows SET due_date = ?, opening_balance = ?, scheduled_payment = ?, " +
                      "principal_paid = ?, interest_paid = ?, penalty_amount = ?, extra_payment = ?, " +
-                     "closing_balance = ?, is_paid = ?, paid_date = ? WHERE id = ?";
+                     "closing_balance = ?, paid = ?, paid_date = ? WHERE id = ?";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -308,7 +308,7 @@ public class AmortizationRowDAO {
      * @return true if successful
      */
     public boolean markAsPaid(int loanId, int periodIndex, LocalDate paidDate) {
-        String sql = "UPDATE amortization_rows SET is_paid = TRUE, paid_date = ? WHERE loan_id = ? AND period_index = ?";
+        String sql = "UPDATE amortization_rows SET paid = TRUE, paid_date = ? WHERE loan_id = ? AND period_index = ?";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -379,7 +379,7 @@ public class AmortizationRowDAO {
      * @return The next unpaid period row, or null if all paid
      */
     public AmortizationRow getNextUnpaidPeriod(int loanId) {
-        String sql = "SELECT * FROM amortization_rows WHERE loan_id = ? AND is_paid = FALSE ORDER BY period_index LIMIT 1";
+        String sql = "SELECT * FROM amortization_rows WHERE loan_id = ? AND paid = FALSE ORDER BY period_index LIMIT 1";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -403,7 +403,7 @@ public class AmortizationRowDAO {
      * @return Number of paid periods
      */
     public int getPaidPeriodsCount(int loanId) {
-        String sql = "SELECT COUNT(*) FROM amortization_rows WHERE loan_id = ? AND is_paid = TRUE";
+        String sql = "SELECT COUNT(*) FROM amortization_rows WHERE loan_id = ? AND paid = TRUE";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -466,7 +466,7 @@ public class AmortizationRowDAO {
         row.setPenaltyAmount(rs.getBigDecimal("penalty_amount"));
         row.setExtraPayment(rs.getBigDecimal("extra_payment"));
         row.setClosingBalance(rs.getBigDecimal("closing_balance"));
-        row.setPaid(rs.getBoolean("is_paid"));
+        row.setPaid(rs.getBoolean("paid"));
         
         Date paidDate = rs.getDate("paid_date");
         if (paidDate != null) {

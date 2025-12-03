@@ -358,6 +358,13 @@ public class LoanControllerDB {
     }
     
     /**
+     * Get loans by status with customer and car details
+     */
+    public List<Loan> getLoansByStatusWithDetails(String status) {
+        return loanDAO.findByStatusWithDetails(status);
+    }
+    
+    /**
      * Get active loans with details
      */
     public List<Loan> getActiveLoans() {

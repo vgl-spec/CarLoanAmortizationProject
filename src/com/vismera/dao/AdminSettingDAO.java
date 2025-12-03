@@ -48,8 +48,9 @@ public class AdminSettingDAO {
      * @return true if successful
      */
     public boolean upsert(AdminSetting setting) {
-        String sql = "INSERT INTO admin_settings (key_name, value_text, description) VALUES (?, ?, ?) " +
-                     "ON DUPLICATE KEY UPDATE value_text = VALUES(value_text), description = VALUES(description)";
+        // H2 compatible MERGE statement (upsert)
+        String sql = "MERGE INTO admin_settings (key_name, value_text, description, updated_at) " +
+                     "KEY (key_name) VALUES (?, ?, ?, CURRENT_TIMESTAMP)";
         
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
