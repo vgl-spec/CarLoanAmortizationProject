@@ -6,7 +6,10 @@ import com.vismera.utils.FormatUtils;
 import com.vismera.utils.UIStyler;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.net.URL;
 import java.util.List;
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.*;
 
@@ -197,10 +200,35 @@ public class CarsPanel extends JPanel {
         imagePanel.setBackground(UIStyler.BACKGROUND_LIGHT);
         imagePanel.setPreferredSize(new Dimension(300, 180));
         
-        // Car image placeholder
-        JLabel imageLabel = new JLabel(car.getMake().charAt(0) + "" + car.getModel().charAt(0), SwingConstants.CENTER);
+        // Load car image
+        JLabel imageLabel = new JLabel("", SwingConstants.CENTER);
         imageLabel.setFont(new Font("Segoe UI", Font.BOLD, 48));
         imageLabel.setForeground(UIStyler.TEXT_SECONDARY);
+        
+        // Try to load the actual image
+        String imagePath = car.getImagePath();
+        if (imagePath != null && !imagePath.isEmpty()) {
+            try {
+                // Load from resources folder
+                URL imageUrl = getClass().getResource("/resources/images/" + imagePath);
+                if (imageUrl != null) {
+                    BufferedImage originalImage = ImageIO.read(imageUrl);
+                    // Scale image to fit panel
+                    Image scaledImage = originalImage.getScaledInstance(290, 170, Image.SCALE_SMOOTH);
+                    imageLabel.setIcon(new ImageIcon(scaledImage));
+                    imageLabel.setText(""); // Clear placeholder text
+                } else {
+                    // Fallback to initials if image not found
+                    imageLabel.setText(car.getMake().charAt(0) + "" + car.getModel().charAt(0));
+                }
+            } catch (Exception e) {
+                // Fallback to initials on error
+                imageLabel.setText(car.getMake().charAt(0) + "" + car.getModel().charAt(0));
+            }
+        } else {
+            // No image path, show initials
+            imageLabel.setText(car.getMake().charAt(0) + "" + car.getModel().charAt(0));
+        }
         imagePanel.add(imageLabel, BorderLayout.CENTER);
         
         // Year badge

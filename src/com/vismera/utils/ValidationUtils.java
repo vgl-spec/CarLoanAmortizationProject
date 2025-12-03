@@ -75,6 +75,21 @@ public class ValidationUtils {
             return false;
         }
     }
+    
+    /**
+     * Validate email format
+     * @param email The email to validate
+     * @return true if valid email format, false otherwise
+     */
+    public static boolean isValidEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return false;
+        }
+        String trimmed = email.trim();
+        // Simple email regex pattern
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+        return trimmed.matches(emailRegex);
+    }
 
     /**
      * Validate that a string represents a positive integer

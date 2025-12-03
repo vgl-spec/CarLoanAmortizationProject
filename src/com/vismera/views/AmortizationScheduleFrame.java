@@ -143,8 +143,24 @@ public class AmortizationScheduleFrame extends JFrame {
         JTableHeader header = amortizationTable.getTableHeader();
         header.setFont(UIStyler.SUBHEADER_FONT);
         header.setBackground(UIStyler.PRIMARY_BLUE);
-        header.setForeground(Color.WHITE);
+        header.setForeground(Color.BLACK);
         header.setPreferredSize(new Dimension(header.getWidth(), 45));
+        
+        // Make header text visible with custom renderer
+        ((DefaultTableCellRenderer) header.getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
+        header.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                setBackground(new Color(229, 231, 235)); // Light gray background
+                setForeground(Color.BLACK);
+                setFont(UIStyler.SUBHEADER_FONT);
+                setHorizontalAlignment(SwingConstants.CENTER);
+                setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, UIStyler.BORDER_COLOR));
+                return c;
+            }
+        });
         
         // Column alignment and coloring
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();

@@ -153,9 +153,24 @@ public class ComparePanel extends JPanel {
         // Header styling
         JTableHeader tableHeader = comparisonTable.getTableHeader();
         tableHeader.setFont(UIStyler.SUBHEADER_FONT);
-        tableHeader.setBackground(UIStyler.PRIMARY_BLUE);
-        tableHeader.setForeground(Color.WHITE);
+        tableHeader.setBackground(new Color(229, 231, 235)); // Light gray
+        tableHeader.setForeground(Color.BLACK);
         tableHeader.setPreferredSize(new Dimension(tableHeader.getWidth(), 45));
+        
+        // Custom header renderer for black text
+        tableHeader.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                setBackground(new Color(229, 231, 235)); // Light gray background
+                setForeground(Color.BLACK);
+                setFont(UIStyler.SUBHEADER_FONT);
+                setHorizontalAlignment(SwingConstants.CENTER);
+                setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, UIStyler.BORDER_COLOR));
+                return c;
+            }
+        });
         
         // Custom renderer
         comparisonTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {

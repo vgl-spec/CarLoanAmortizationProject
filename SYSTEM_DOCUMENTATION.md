@@ -1,5 +1,6 @@
-# Vismerá Inc. Car Loan Amortization System
+# Vismerá Inc. Car Loan Amortization System with Database
 ## Technical Documentation for Defense Presentation
+### Document Version: 2.0 (Database Integrated)
 
 ---
 
@@ -7,8 +8,11 @@
 1. [Algorithm for Car Loan Amortization](#1-algorithm-for-car-loan-amortization-with-penalty-and-compound-interest)
 2. [System Architecture](#2-system-architecture)
 3. [System Structure](#3-system-structure)
-4. [Key Terms and Definitions](#4-key-terms-and-definitions)
-5. [Function Documentation](#5-how-each-function-works)
+4. [Database Architecture](#4-database-architecture)
+5. [Data Access Layer (DAO)](#5-data-access-layer-dao)
+6. [Admin System](#6-admin-system)
+7. [Key Terms and Definitions](#7-key-terms-and-definitions)
+8. [Function Documentation](#8-how-each-function-works)
 
 ---
 
@@ -208,24 +212,62 @@ src/
 │
 ├── com/vismera/
 │   │
-│   ├── models/                             # DATA LAYER
-│   │   ├── Car.java                        # Vehicle data model
-│   │   ├── AmortizationEntry.java          # Single payment record
+│   ├── models/                             # DATA LAYER (Entities)
+│   │   ├── Car.java                        # Vehicle entity (DB-backed)
+│   │   ├── Customer.java                   # Customer entity (NEW)
+│   │   ├── Loan.java                       # Loan entity (NEW)
+│   │   ├── AmortizationEntry.java          # Single payment record (in-memory)
+│   │   ├── AmortizationRow.java            # DB-backed amortization row (NEW)
+│   │   ├── Payment.java                    # Payment entity (NEW)
+│   │   ├── AdminSetting.java               # System settings entity (NEW)
 │   │   ├── LoanCalculation.java            # Core calculation engine
 │   │   └── LoanScenario.java               # Comparison scenario model
 │   │
+│   ├── dao/                                # DATA ACCESS LAYER (NEW)
+│   │   ├── CustomerDAO.java                # Customer CRUD operations
+│   │   ├── CarDAO.java                     # Car CRUD operations
+│   │   ├── LoanDAO.java                    # Loan CRUD operations
+│   │   ├── AmortizationRowDAO.java         # Amortization CRUD operations
+│   │   ├── PaymentDAO.java                 # Payment CRUD operations
+│   │   └── AdminSettingDAO.java            # Settings CRUD operations
+│   │
+│   ├── db/                                 # DATABASE LAYER (NEW)
+│   │   ├── db_schema.sql                   # MySQL schema definition
+│   │   └── DatabaseConfig.java             # Connection management
+│   │
 │   ├── controllers/                        # BUSINESS LOGIC LAYER
 │   │   ├── CarController.java              # Car inventory management
-│   │   ├── LoanController.java             # Loan calculation orchestration
+│   │   ├── CustomerController.java         # Customer management (NEW)
+│   │   ├── LoanController.java             # Loan calculation (in-memory)
+│   │   ├── LoanControllerDB.java           # Loan management (DB-backed, NEW)
+│   │   ├── PaymentController.java          # Payment processing (NEW)
+│   │   ├── SettingsController.java         # System settings (NEW)
+│   │   ├── ReportController.java           # Analytics & reports (NEW)
 │   │   └── ComparisonController.java       # Scenario comparison logic
 │   │
-│   ├── views/                              # PRESENTATION LAYER
+│   ├── views/                              # PRESENTATION LAYER (Customer)
 │   │   ├── MainFrame.java                  # Main application window
 │   │   ├── CarsPanel.java                  # Car selection interface
 │   │   ├── CalculatePanel.java             # Loan input form
 │   │   ├── LoanSummaryDialog.java          # Results popup
 │   │   ├── AmortizationScheduleFrame.java  # Payment schedule table
 │   │   └── ComparePanel.java               # Scenario comparison
+│   │
+│   ├── views/admin/                        # ADMIN PRESENTATION LAYER (NEW)
+│   │   ├── AdminMainFrame.java             # Admin main window with sidebar
+│   │   ├── DashboardPanel.java             # Admin dashboard with stats
+│   │   ├── CustomerManagementPanel.java    # Customer CRUD panel
+│   │   ├── CarInventoryPanel.java          # Car inventory management
+│   │   ├── LoanManagementPanel.java        # Loan management panel
+│   │   ├── PaymentTrackingPanel.java       # Payment tracking panel
+│   │   ├── ReportsPanel.java               # Reports and analytics
+│   │   ├── SettingsPanel.java              # System settings panel
+│   │   ├── CustomerFormDialog.java         # Customer add/edit dialog
+│   │   ├── CarFormDialog.java              # Car add/edit dialog
+│   │   ├── LoanFormDialog.java             # Loan create/edit dialog
+│   │   ├── PaymentRecordDialog.java        # Record payment dialog
+│   │   ├── LoanDetailsDialog.java          # View loan details dialog
+│   │   └── AmortizationScheduleDialog.java # View amortization dialog
 │   │
 │   └── utils/                              # UTILITY LAYER
 │       ├── FormatUtils.java                # Number/currency formatting
@@ -337,9 +379,360 @@ src/
 
 ---
 
-## 4. Key Terms and Definitions
+## 4. Database Architecture
 
-### 4.1 Financial Terms
+### 4.1 Database Overview
+
+The system uses **MySQL 8.0+** for persistent data storage, enabling:
+- Customer relationship management
+- Loan lifecycle tracking
+- Payment history and reporting
+- Admin configuration persistence
+
+### 4.2 Database Schema
+
+```
+Database: car_loan_amortization_db
+```
+
+#### Entity Relationship Diagram
+
+```
+┌─────────────────────┐         ┌─────────────────────┐
+│     customers       │         │        cars         │
+├─────────────────────┤         ├─────────────────────┤
+│ PK customer_id      │         │ PK car_id           │
+│    first_name       │         │    make             │
+│    last_name        │         │    model            │
+│    email            │         │    year             │
+│    phone            │         │    category         │
+│    address          │         │    color            │
+│    date_of_birth    │         │    mpg              │
+│    created_at       │         │    price            │
+│    updated_at       │         │    image_path       │
+└─────────┬───────────┘         │    status (ENUM)    │
+          │                     │    created_at       │
+          │                     │    updated_at       │
+          │                     └─────────┬───────────┘
+          │                               │
+          │         ┌─────────────────────┘
+          │         │
+          ▼         ▼
+┌─────────────────────────────────────────────────────┐
+│                       loans                          │
+├─────────────────────────────────────────────────────┤
+│ PK loan_id                                          │
+│ FK customer_id → customers.customer_id              │
+│ FK car_id → cars.car_id                             │
+│    car_price, sales_tax_rate, registration_fee     │
+│    down_payment, trade_in_value                    │
+│    annual_interest_rate, loan_term_years           │
+│    compounding_frequency, penalty_rate             │
+│    extra_payment_per_month, total_amount_financed  │
+│    monthly_payment, total_interest                 │
+│    total_cost, status (ENUM), start_date           │
+│    created_at, updated_at                          │
+└─────────────────┬───────────────────────────────────┘
+                  │
+        ┌─────────┴─────────┐
+        │                   │
+        ▼                   ▼
+┌─────────────────┐  ┌─────────────────┐
+│amortization_rows│  │    payments     │
+├─────────────────┤  ├─────────────────┤
+│ PK row_id       │  │ PK payment_id   │
+│ FK loan_id      │  │ FK loan_id      │
+│    payment_num  │  │    amount       │
+│    payment      │  │    principal    │
+│    principal    │  │    interest     │
+│    interest     │  │    penalty      │
+│    penalty      │  │    payment_date │
+│    balance      │  │    payment_type │
+│    total_paid   │  │    notes        │
+└─────────────────┘  │    created_at   │
+                     └─────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│                   admin_settings                     │
+├─────────────────────────────────────────────────────┤
+│ PK setting_key (VARCHAR)                            │
+│    setting_value                                    │
+│    description                                      │
+│    updated_at                                       │
+└─────────────────────────────────────────────────────┘
+```
+
+### 4.3 Table Definitions
+
+#### `customers` Table
+| Column | Type | Description |
+|--------|------|-------------|
+| `customer_id` | INT (PK, AUTO_INCREMENT) | Unique customer identifier |
+| `first_name` | VARCHAR(100) | Customer's first name |
+| `last_name` | VARCHAR(100) | Customer's last name |
+| `email` | VARCHAR(255) UNIQUE | Contact email |
+| `phone` | VARCHAR(20) | Contact phone |
+| `address` | TEXT | Full address |
+| `date_of_birth` | DATE | Birth date |
+| `created_at` | TIMESTAMP | Record creation time |
+| `updated_at` | TIMESTAMP | Last update time |
+
+#### `cars` Table
+| Column | Type | Description |
+|--------|------|-------------|
+| `car_id` | INT (PK, AUTO_INCREMENT) | Unique car identifier |
+| `make` | VARCHAR(100) | Manufacturer (e.g., Toyota) |
+| `model` | VARCHAR(100) | Model name (e.g., Camry) |
+| `year` | INT | Model year |
+| `category` | VARCHAR(50) | Category (Sedan, SUV, etc.) |
+| `color` | VARCHAR(50) | Exterior color |
+| `mpg` | INT | Miles per gallon |
+| `price` | DECIMAL(12,2) | Vehicle price |
+| `image_path` | VARCHAR(500) | Path to car image |
+| `status` | ENUM('AVAILABLE','SOLD','RESERVED') | Inventory status |
+
+#### `loans` Table
+| Column | Type | Description |
+|--------|------|-------------|
+| `loan_id` | INT (PK, AUTO_INCREMENT) | Unique loan identifier |
+| `customer_id` | INT (FK) | Reference to customer |
+| `car_id` | INT (FK) | Reference to car |
+| `car_price` | DECIMAL(12,2) | Price at time of loan |
+| `sales_tax_rate` | DECIMAL(5,2) | Applied tax rate |
+| `registration_fee` | DECIMAL(10,2) | Registration fees |
+| `down_payment` | DECIMAL(12,2) | Down payment amount |
+| `trade_in_value` | DECIMAL(12,2) | Trade-in credit |
+| `annual_interest_rate` | DECIMAL(5,2) | APR percentage |
+| `loan_term_years` | INT | Loan duration in years |
+| `compounding_frequency` | VARCHAR(20) | Monthly/Quarterly/Annually |
+| `penalty_rate` | DECIMAL(5,2) | Late payment penalty rate |
+| `extra_payment_per_month` | DECIMAL(10,2) | Additional monthly payment |
+| `total_amount_financed` | DECIMAL(12,2) | Principal amount |
+| `monthly_payment` | DECIMAL(10,2) | Fixed monthly payment |
+| `total_interest` | DECIMAL(12,2) | Total interest over term |
+| `total_cost` | DECIMAL(12,2) | Total of all payments |
+| `status` | ENUM('ACTIVE','PAID_OFF','DEFAULTED','CANCELLED') | Loan status |
+| `start_date` | DATE | Loan start date |
+
+#### `payments` Table
+| Column | Type | Description |
+|--------|------|-------------|
+| `payment_id` | INT (PK, AUTO_INCREMENT) | Unique payment identifier |
+| `loan_id` | INT (FK) | Reference to loan |
+| `amount` | DECIMAL(10,2) | Total payment amount |
+| `principal_portion` | DECIMAL(10,2) | Principal paid |
+| `interest_portion` | DECIMAL(10,2) | Interest paid |
+| `penalty_portion` | DECIMAL(10,2) | Penalty paid |
+| `payment_date` | DATE | Date of payment |
+| `payment_type` | ENUM('REGULAR','EXTRA','PENALTY','FINAL') | Payment type |
+| `notes` | TEXT | Optional notes |
+
+#### `admin_settings` Table
+| Column | Type | Description |
+|--------|------|-------------|
+| `setting_key` | VARCHAR(100) (PK) | Setting identifier |
+| `setting_value` | TEXT | Setting value |
+| `description` | TEXT | Setting description |
+| `updated_at` | TIMESTAMP | Last update time |
+
+### 4.4 Database Connection Configuration
+
+```java
+// DatabaseConfig.java
+public class DatabaseConfig {
+    private static final String URL = "jdbc:mysql://localhost:3306/car_loan_amortization_db";
+    private static final String USER = "root";
+    private static final String PASSWORD = "your_password";
+    
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(URL, USER, PASSWORD);
+    }
+}
+```
+
+---
+
+## 5. Data Access Layer (DAO)
+
+### 5.1 DAO Pattern Overview
+
+The Data Access Object (DAO) pattern separates data persistence logic from business logic:
+
+```
+┌──────────────┐     ┌─────────┐     ┌──────────────┐
+│  Controller  │────▶│   DAO   │────▶│   Database   │
+└──────────────┘     └─────────┘     └──────────────┘
+     (Logic)         (Persistence)      (MySQL)
+```
+
+### 5.2 DAO Classes
+
+| DAO Class | Entity | Key Operations |
+|-----------|--------|----------------|
+| `CustomerDAO` | Customer | CRUD + findByEmail + search |
+| `CarDAO` | Car | CRUD + findByStatus + search + updateStatus |
+| `LoanDAO` | Loan | CRUD + findByCustomer + findByStatus |
+| `AmortizationRowDAO` | AmortizationRow | CRUD + findByLoan + deleteByLoan |
+| `PaymentDAO` | Payment | CRUD + findByLoan + findByDateRange |
+| `AdminSettingDAO` | AdminSetting | CRUD + getByKey + updateValue |
+
+### 5.3 Common DAO Methods
+
+```java
+// Standard CRUD Pattern
+public interface GenericDAO<T> {
+    int create(T entity);         // Returns generated ID
+    T findById(int id);           // Returns entity or null
+    List<T> findAll();            // Returns all entities
+    boolean update(T entity);     // Returns success status
+    boolean delete(int id);       // Returns success status
+}
+```
+
+### 5.4 Example: CustomerDAO
+
+```java
+public class CustomerDAO {
+    // Create - Insert new customer
+    public int create(Customer customer) {
+        String sql = "INSERT INTO customers (first_name, last_name, email, phone, address, date_of_birth) VALUES (?, ?, ?, ?, ?, ?)";
+        // Execute and return generated ID
+    }
+    
+    // Read - Find by ID
+    public Customer findById(int id) {
+        String sql = "SELECT * FROM customers WHERE customer_id = ?";
+        // Execute and map ResultSet to Customer
+    }
+    
+    // Update - Modify existing customer
+    public boolean update(Customer customer) {
+        String sql = "UPDATE customers SET first_name = ?, last_name = ?, ... WHERE customer_id = ?";
+        // Execute and return affected rows > 0
+    }
+    
+    // Delete - Remove customer
+    public boolean delete(int id) {
+        String sql = "DELETE FROM customers WHERE customer_id = ?";
+        // Execute and return affected rows > 0
+    }
+    
+    // Search - Find by name or email
+    public List<Customer> search(String query) {
+        String sql = "SELECT * FROM customers WHERE first_name LIKE ? OR last_name LIKE ? OR email LIKE ?";
+        // Execute with wildcards
+    }
+}
+```
+
+---
+
+## 6. Admin System
+
+### 6.1 Admin Interface Overview
+
+The Admin System provides comprehensive management capabilities:
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                        AdminMainFrame                               │
+├──────────────┬─────────────────────────────────────────────────────┤
+│              │                                                      │
+│   SIDEBAR    │              CONTENT AREA (CardLayout)              │
+│              │                                                      │
+│  ┌────────┐  │  ┌──────────────────────────────────────────────┐  │
+│  │Dashboard│  │  │                                              │  │
+│  ├────────┤  │  │    DashboardPanel                            │  │
+│  │Customers│  │  │    CustomerManagementPanel                  │  │
+│  ├────────┤  │  │    CarInventoryPanel                         │  │
+│  │  Cars  │  │  │    LoanManagementPanel                       │  │
+│  ├────────┤  │  │    PaymentTrackingPanel                      │  │
+│  │ Loans  │  │  │    ReportsPanel                              │  │
+│  ├────────┤  │  │    SettingsPanel                             │  │
+│  │Payments│  │  │                                              │  │
+│  ├────────┤  │  └──────────────────────────────────────────────┘  │
+│  │Reports │  │                                                      │
+│  ├────────┤  │                                                      │
+│  │Settings│  │                                                      │
+│  └────────┘  │                                                      │
+└──────────────┴─────────────────────────────────────────────────────┘
+```
+
+### 6.2 Admin Panels
+
+| Panel | Purpose | Features |
+|-------|---------|----------|
+| **DashboardPanel** | System overview | Stats cards, charts, recent activity |
+| **CustomerManagementPanel** | Customer CRUD | Table, search, add/edit/delete dialogs |
+| **CarInventoryPanel** | Car inventory | Table, status filters, stock management |
+| **LoanManagementPanel** | Loan management | Active loans, status tracking, details view |
+| **PaymentTrackingPanel** | Payment processing | Record payments, history, overdue tracking |
+| **ReportsPanel** | Analytics | Revenue, loan performance, export options |
+| **SettingsPanel** | Configuration | Interest rates, fees, penalties |
+
+### 6.3 Admin Dialogs
+
+| Dialog | Purpose | Fields |
+|--------|---------|--------|
+| `CustomerFormDialog` | Add/Edit customer | Name, email, phone, address, DOB |
+| `CarFormDialog` | Add/Edit car | Make, model, year, category, price, status |
+| `LoanFormDialog` | Create loan | Customer, car, rates, terms, payments |
+| `PaymentRecordDialog` | Record payment | Amount, date, type, notes |
+| `LoanDetailsDialog` | View loan details | Summary, customer info, car info, history |
+| `AmortizationScheduleDialog` | View schedule | Full payment-by-payment breakdown |
+
+### 6.4 Admin Controllers
+
+```java
+// Controller Hierarchy
+┌───────────────────────┐
+│  CustomerController   │ ─── Manages customers via CustomerDAO
+├───────────────────────┤
+│    CarController      │ ─── Manages cars via CarDAO
+├───────────────────────┤
+│  LoanControllerDB     │ ─── Manages loans via LoanDAO
+├───────────────────────┤
+│  PaymentController    │ ─── Manages payments via PaymentDAO
+├───────────────────────┤
+│  SettingsController   │ ─── Manages settings via AdminSettingDAO
+├───────────────────────┤
+│   ReportController    │ ─── Aggregates data for analytics
+└───────────────────────┘
+```
+
+### 6.5 ReportController Analytics
+
+```java
+// Available Reports
+public class ReportController {
+    // Revenue metrics
+    BigDecimal getTotalRevenue();
+    BigDecimal getRevenueInPeriod(LocalDate start, LocalDate end);
+    
+    // Loan metrics
+    int getTotalActiveLoans();
+    int getLoansByStatus(String status);
+    BigDecimal getAverageLoanAmount();
+    
+    // Payment metrics
+    int getTotalPaymentsReceived();
+    BigDecimal getTotalInterestEarned();
+    
+    // Customer metrics
+    int getTotalCustomers();
+    List<Customer> getTopCustomers(int limit);
+    
+    // Performance metrics
+    BigDecimal getDefaultRate();
+    BigDecimal getOnTimePaymentRate();
+}
+```
+
+---
+
+## 7. Key Terms and Definitions
+
+### 7.1 Financial Terms
 
 | Term | Definition | Formula/Example |
 |------|------------|-----------------|
@@ -354,7 +747,7 @@ src/
 | **Penalty** | A fee charged when a payment is missed | Balance × Penalty Rate |
 | **Capitalization** | Adding unpaid interest to the principal balance | Increases total debt |
 
-### 4.2 System-Specific Terms
+### 7.2 System-Specific Terms
 
 | Term | Definition | Location in System |
 |------|------------|-------------------|
@@ -365,18 +758,31 @@ src/
 | **Total Vehicle Cost** | Car price + taxes + fees | `calculateTotalCost()` |
 | **Best Deal** | Scenario with lowest total cost | `ComparisonController.findBestDeal()` |
 
-### 4.3 Technical Terms
+### 7.3 Technical Terms
 
 | Term | Definition | Application |
 |------|------------|-------------|
 | **MVC Pattern** | Model-View-Controller architectural pattern | Separates data, UI, and logic |
+| **DAO Pattern** | Data Access Object - separates data persistence from logic | DAOs handle database operations |
 | **Singleton Pattern** | Design pattern ensuring only one instance exists | Controllers use this pattern |
+| **JDBC** | Java Database Connectivity API | Connects Java to MySQL |
 | **CardLayout** | Swing layout manager for switching between panels | Navigation in MainFrame |
 | **JDialog** | Modal popup window | LoanSummaryDialog |
 | **JTable** | Swing component for tabular data | Amortization schedule display |
 | **TableCellRenderer** | Customizes cell appearance in JTable | Color-coding columns |
 
-### 4.4 Calculation Factors
+### 7.4 Database Terms
+
+| Term | Definition | Application |
+|------|------------|-------------|
+| **CRUD** | Create, Read, Update, Delete operations | Standard database operations |
+| **Primary Key (PK)** | Unique identifier for each record | `customer_id`, `car_id`, `loan_id` |
+| **Foreign Key (FK)** | Reference to another table's primary key | `loans.customer_id → customers.customer_id` |
+| **ENUM** | Predefined set of values | Loan status: ACTIVE, PAID_OFF, etc. |
+| **INDEX** | Database optimization for faster queries | Indexed on frequently searched columns |
+| **Transaction** | Group of operations that succeed or fail together | Used in payment processing |
+
+### 7.5 Calculation Factors
 
 | Factor | Impact | Range |
 |--------|--------|-------|
@@ -389,9 +795,9 @@ src/
 
 ---
 
-## 5. How Each Function Works
+## 8. How Each Function Works
 
-### 5.1 Model Functions
+### 8.1 Model Functions
 
 #### `LoanCalculation.calculateTotalCost()`
 ```java
@@ -519,7 +925,7 @@ public List<AmortizationEntry> generateAmortizationSchedule() {
 }
 ```
 
-### 5.2 Controller Functions
+### 8.2 Controller Functions
 
 #### `CarController.searchCars(String query)`
 ```java
@@ -576,7 +982,7 @@ public LoanScenario findBestDeal() {
 }
 ```
 
-### 5.3 Utility Functions
+### 8.3 Utility Functions
 
 #### `FormatUtils.formatCurrency(double amount)`
 ```java
@@ -655,7 +1061,7 @@ public static boolean exportAmortizationSchedule(List<AmortizationEntry> entries
 }
 ```
 
-### 5.4 View Event Handlers
+### 8.4 View Event Handlers
 
 #### `CalculatePanel.calculateLoan()`
 ```java
@@ -750,5 +1156,5 @@ private void addScenario() {
 
 ---
 
-*Documentation prepared for Vismerá Inc. Car Loan Amortization System*
-*Version 1.0 | December 2025*
+*Documentation prepared for Vismerá Inc. Car Loan Amortization System with Database*
+*Version 2.0 | Database Integrated | December 2025*
