@@ -904,14 +904,14 @@ public class TextFileDatabase {
         settings.put("app_version", "3.0.0");
         saveSettings();
         
-        // Sample cars (Philippine prices)
+        // Sample cars (Philippine prices) - using existing images
         Car[] sampleCars = {
-            createCar("Toyota", "Camry", 2024, new BigDecimal("2100000"), "Sedan", "White", 28, "toyota_camry.png"),
-            createCar("Honda", "Civic", 2024, new BigDecimal("1350000"), "Sedan", "Black", 32, "honda_civic.png"),
-            createCar("Ford", "Ranger", 2024, new BigDecimal("1680000"), "Pickup", "Blue", 22, "ford_ranger.png"),
-            createCar("Mitsubishi", "Montero Sport", 2024, new BigDecimal("2050000"), "SUV", "Gray", 20, "mitsubishi_montero.png"),
-            createCar("Mazda", "CX-5", 2024, new BigDecimal("1890000"), "SUV", "Red", 26, "mazda_cx5.png"),
-            createCar("Hyundai", "Accent", 2024, new BigDecimal("898000"), "Sedan", "Silver", 35, "hyundai_accent.png")
+            createCar("Mercedes-Benz", "S-Class", 2024, new BigDecimal("5800000"), "Luxury Sedan", "Silver", 24, "mercedes_sclass.png"),
+            createCar("Porsche", "911 Carrera", 2024, new BigDecimal("9500000"), "Sports Car", "Red", 20, "porsche_911.png"),
+            createCar("BMW", "X5 M", 2024, new BigDecimal("7200000"), "Luxury SUV", "Black", 22, "bmw_x5m.png"),
+            createCar("Audi", "RS7", 2024, new BigDecimal("8500000"), "Sports Car", "Gray", 21, "audi_rs7.png"),
+            createCar("Lexus", "LS 500", 2024, new BigDecimal("6800000"), "Luxury Sedan", "White", 25, "lexus_ls500.png"),
+            createCar("Range Rover", "Sport", 2024, new BigDecimal("7800000"), "Luxury SUV", "Green", 19, "rangerover_sport.png")
         };
         
         for (Car car : sampleCars) {

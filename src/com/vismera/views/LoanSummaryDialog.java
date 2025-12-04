@@ -76,11 +76,17 @@ public class LoanSummaryDialog extends JDialog {
         JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         buttonsPanel.setBackground(UIStyler.BACKGROUND_LIGHT);
         
+        JButton viewScheduleButton = new JButton("View Amortization Schedule");
+        UIStyler.stylePrimaryButton(viewScheduleButton);
+        viewScheduleButton.setPreferredSize(new Dimension(220, 45));
+        viewScheduleButton.addActionListener(e -> viewAmortizationSchedule());
+        
         JButton closeButton = new JButton("Close");
         UIStyler.stylePrimaryButton(closeButton);
         closeButton.setPreferredSize(new Dimension(150, 45));
         closeButton.addActionListener(e -> dispose());
         
+        buttonsPanel.add(viewScheduleButton);
         buttonsPanel.add(closeButton);
         
         mainPanel.add(buttonsPanel, BorderLayout.SOUTH);
