@@ -1,9 +1,8 @@
 package com.vismera.views.admin;
 
-import com.vismera.dao.AmortizationRowDAO;
-import com.vismera.dao.LoanDAO;
 import com.vismera.models.AmortizationRow;
 import com.vismera.models.Loan;
+import com.vismera.storage.TextFileDatabase;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -145,8 +144,8 @@ public class AmortizationScheduleDialog extends JDialog {
     }
     
     private void loadSchedule() {
-        AmortizationRowDAO rowDAO = AmortizationRowDAO.getInstance();
-        List<AmortizationRow> rows = rowDAO.findByLoanId(loanId);
+        TextFileDatabase database = TextFileDatabase.getInstance();
+        List<AmortizationRow> rows = database.getAmortizationByLoanId(loanId);
         
         LocalDate today = LocalDate.now();
         int paidCount = 0;

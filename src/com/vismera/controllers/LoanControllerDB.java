@@ -1,14 +1,10 @@
 package com.vismera.controllers;
 
-import com.vismera.dao.AmortizationRowDAO;
-import com.vismera.dao.CarDAO;
-import com.vismera.dao.CustomerDAO;
-import com.vismera.dao.LoanDAO;
-import com.vismera.dao.PaymentDAO;
 import com.vismera.models.AmortizationEntry;
 import com.vismera.models.AmortizationRow;
 import com.vismera.models.Loan;
 import com.vismera.models.LoanCalculation;
+import com.vismera.storage.TextFileDatabase;
 import com.vismera.utils.CSVExporter;
 
 import java.math.BigDecimal;
@@ -23,7 +19,7 @@ import java.util.logging.Logger;
 
 /**
  * Controller for loan calculations, management, and amortization.
- * Now integrated with database through DAOs.
+ * Now uses TextFileDatabase for storage.
  * 
  * @author Vismerá Inc.
  */
@@ -34,18 +30,10 @@ public class LoanControllerDB {
     private static LoanControllerDB instance;
     private LoanCalculation currentLoan;
     
-    private final LoanDAO loanDAO;
-    private final AmortizationRowDAO amortizationRowDAO;
-    private final PaymentDAO paymentDAO;
-    private final CustomerDAO customerDAO;
-    private final CarDAO carDAO;
+    private final TextFileDatabase database;
 
     private LoanControllerDB() {
-        loanDAO = LoanDAO.getInstance();
-        amortizationRowDAO = AmortizationRowDAO.getInstance();
-        paymentDAO = PaymentDAO.getInstance();
-        customerDAO = CustomerDAO.getInstance();
-        carDAO = CarDAO.getInstance();
+        database = TextFileDatabase.getInstance();
     }
 
     /**
@@ -64,7 +52,7 @@ public class LoanControllerDB {
      */
     public void setUseDatabase(boolean useDatabase) {
         // LoanControllerDB always uses database
-        LOGGER.info("LoanControllerDB always uses database mode");
+        LOGGER.info("LoanControllerDB always uses text file database mode");
     }
     
     /**
@@ -82,7 +70,7 @@ public class LoanControllerDB {
      * @return true if successful
      */
     public boolean closeLoan(int loanId) {
-        Loan loan = loanDAO.findById(loanId);
+        Loan loan = database.getLoanById(loanId);
         if (loan == null) {
             LOGGER.warning("Cannot close loan - not found: " + loanId);
             return false;
@@ -93,7 +81,7 @@ public class LoanControllerDB {
             return false;
         }
         
-        boolean updated = loanDAO.updateStatus(loanId, Loan.STATUS_PAID_OFF);
+        boolean updated = database.updateLoanStatus(loanId, Loan.STATUS_PAID_OFF);
         if (updated) {
             LOGGER.info("Loan closed (paid off): " + loanId);
         }
@@ -213,20 +201,17 @@ public class LoanControllerDB {
         loan.calculateTotalInterest();
         
         // Insert loan
-        int loanId = loanDAO.insert(loan);
+        int loanId = database.insertLoan(loan);
         if (loanId <= 0) {
             LOGGER.severe("Failed to create loan");
             return -1;
         }
         
+        loan.setId(loanId);
+        
         // Generate and insert amortization schedule
         List<AmortizationRow> schedule = generateAmortizationRows(loan);
-        if (!amortizationRowDAO.batchInsert(schedule)) {
-            LOGGER.severe("Failed to create amortization schedule for loan: " + loanId);
-            // Optionally delete the loan
-            loanDAO.delete(loanId);
-            return -1;
-        }
+        database.insertAmortizationRows(schedule);
         
         LOGGER.info("Created loan #" + loanId + " with " + schedule.size() + " amortization rows");
         return loanId;
@@ -305,110 +290,122 @@ public class LoanControllerDB {
      * Update a loan
      */
     public boolean updateLoan(Loan loan) {
-        return loanDAO.update(loan);
+        return database.updateLoan(loan);
     }
     
     /**
      * Delete a loan
      */
     public boolean deleteLoan(int id) {
-        return loanDAO.delete(id);
+        return database.deleteLoan(id);
     }
     
     /**
      * Get loan by ID with customer and car details
      */
     public Loan getLoanWithDetails(int id) {
-        return loanDAO.findByIdWithDetails(id);
+        return database.getLoanWithDetails(id);
     }
     
     /**
      * Get loan by ID
      */
     public Loan getLoanById(int id) {
-        return loanDAO.findById(id);
+        return database.getLoanById(id);
     }
     
     /**
      * Get all loans
      */
     public List<Loan> getAllLoans() {
-        return loanDAO.findAll();
+        return database.getAllLoans();
     }
     
     /**
      * Get all loans with details
      */
     public List<Loan> getAllLoansWithDetails() {
-        return loanDAO.findAllWithDetails();
+        return database.getAllLoansWithDetails();
     }
     
     /**
      * Get loans by customer
      */
     public List<Loan> getLoansByCustomer(int customerId) {
-        return loanDAO.findByCustomerId(customerId);
+        List<Loan> result = new ArrayList<>();
+        for (Loan loan : database.getAllLoans()) {
+            if (loan.getCustomerId() == customerId) {
+                result.add(loan);
+            }
+        }
+        return result;
     }
     
     /**
      * Get loans by status
      */
     public List<Loan> getLoansByStatus(String status) {
-        return loanDAO.findByStatus(status);
+        return database.getLoansByStatus(status);
     }
     
     /**
      * Get loans by status with customer and car details
      */
     public List<Loan> getLoansByStatusWithDetails(String status) {
-        return loanDAO.findByStatusWithDetails(status);
+        List<Loan> loans = database.getLoansByStatus(status);
+        for (Loan loan : loans) {
+            loan.setCustomer(database.getCustomerById(loan.getCustomerId()));
+            loan.setCar(database.getCarById(loan.getCarId()));
+        }
+        return loans;
     }
     
     /**
      * Get active loans with details
      */
     public List<Loan> getActiveLoans() {
-        return loanDAO.getActiveLoans();
+        return getLoansByStatusWithDetails(Loan.STATUS_ACTIVE);
     }
     
     /**
      * Change loan status
      */
     public boolean changeLoanStatus(int loanId, String newStatus) {
-        return loanDAO.updateStatus(loanId, newStatus);
+        return database.updateLoanStatus(loanId, newStatus);
     }
     
     /**
      * Recalculate amortization for a loan
      */
     public boolean recalculateAmortization(int loanId) {
-        Loan loan = loanDAO.findById(loanId);
+        Loan loan = database.getLoanById(loanId);
         if (loan == null) {
             return false;
         }
         
         // Delete existing amortization rows
-        amortizationRowDAO.deleteByLoanId(loanId);
+        database.deleteAmortizationByLoanId(loanId);
         
         // Regenerate
         loan.calculateMonthlyPayment();
         List<AmortizationRow> schedule = generateAmortizationRows(loan);
-        return amortizationRowDAO.batchInsert(schedule);
+        database.insertAmortizationRows(schedule);
+        return true;
     }
     
     /**
      * Get amortization schedule for a loan
      */
     public List<AmortizationRow> getAmortizationSchedule(int loanId) {
-        return amortizationRowDAO.findByLoanId(loanId);
+        return database.getAmortizationByLoanId(loanId);
     }
     
     /**
      * Get remaining balance for a loan
      */
     public BigDecimal getRemainingBalance(int loanId) {
-        BigDecimal totalPaid = paymentDAO.getTotalPaidForLoan(loanId);
-        Loan loan = loanDAO.findById(loanId);
+        BigDecimal totalPaid = database.getTotalPaidForLoan(loanId);
+        Loan loan = database.getLoanById(loanId);
         if (loan == null || loan.getTotalAmount() == null) {
             return BigDecimal.ZERO;
         }
@@ -421,22 +418,24 @@ public class LoanControllerDB {
     public Map<String, Object> getLoanSummary(int loanId) {
         Map<String, Object> summary = new HashMap<>();
         
-        Loan loan = loanDAO.findByIdWithDetails(loanId);
+        Loan loan = database.getLoanWithDetails(loanId);
         if (loan == null) {
             return summary;
         }
         
-        BigDecimal totalPaid = paymentDAO.getTotalPaidForLoan(loanId);
-        BigDecimal penaltiesPaid = paymentDAO.getPenaltiesPaidForLoan(loanId);
-        int paymentCount = paymentDAO.getCountForLoan(loanId);
-        int paidPeriods = amortizationRowDAO.getPaidPeriodsCount(loanId);
-        int totalPeriods = amortizationRowDAO.getTotalPeriodsCount(loanId);
+        BigDecimal totalPaid = database.getTotalPaidForLoan(loanId);
+        List<AmortizationRow> amortRows = database.getAmortizationByLoanId(loanId);
+        int paidPeriods = 0;
+        int totalPeriods = amortRows.size();
+        for (AmortizationRow row : amortRows) {
+            if (row.isPaid()) paidPeriods++;
+        }
         
         summary.put("loan", loan);
         summary.put("totalPaid", totalPaid);
-        summary.put("penaltiesPaid", penaltiesPaid);
+        summary.put("penaltiesPaid", BigDecimal.ZERO); // Simplified
         summary.put("remainingBalance", getRemainingBalance(loanId));
-        summary.put("paymentCount", paymentCount);
+        summary.put("paymentCount", database.getPaymentsByLoanId(loanId).size());
         summary.put("paidPeriods", paidPeriods);
         summary.put("totalPeriods", totalPeriods);
         summary.put("progressPercent", totalPeriods > 0 ? (paidPeriods * 100.0 / totalPeriods) : 0);
@@ -448,20 +447,27 @@ public class LoanControllerDB {
      * Get total outstanding balance for all active loans
      */
     public BigDecimal getTotalOutstanding() {
-        return loanDAO.getTotalOutstanding();
+        BigDecimal total = BigDecimal.ZERO;
+        for (Loan loan : database.getLoansByStatus(Loan.STATUS_ACTIVE)) {
+            if (loan.getTotalAmount() != null) {
+                BigDecimal paid = database.getTotalPaidForLoan(loan.getId());
+                total = total.add(loan.getTotalAmount().subtract(paid));
+            }
+        }
+        return total;
     }
     
     /**
      * Get active loan count
      */
     public int getActiveLoanCount() {
-        return loanDAO.getCountByStatus(Loan.STATUS_ACTIVE);
+        return database.getLoansByStatus(Loan.STATUS_ACTIVE).size();
     }
     
     /**
      * Get total loan count
      */
     public int getTotalLoanCount() {
-        return loanDAO.getCount();
+        return database.getAllLoans().size();
     }
 }

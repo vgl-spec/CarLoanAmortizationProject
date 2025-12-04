@@ -1,6 +1,6 @@
 package com.vismera.views.admin;
 
-import com.vismera.config.DatabaseConfig;
+import com.vismera.storage.TextFileDatabase;
 import com.vismera.utils.UIStyler;
 
 import javax.swing.*;
@@ -200,7 +200,9 @@ public class AdminMainFrame extends JFrame {
         SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
             @Override
             protected Boolean doInBackground() {
-                return DatabaseConfig.testConnection();
+                // Text file database is always "connected"
+                TextFileDatabase.getInstance();
+                return true;
             }
             
             @Override
@@ -208,10 +210,10 @@ public class AdminMainFrame extends JFrame {
                 try {
                     boolean connected = get();
                     if (connected) {
-                        connectionStatusLabel.setText("✓ Database connected");
+                        connectionStatusLabel.setText("✓ Data storage ready");
                         connectionStatusLabel.setForeground(new Color(39, 174, 96));
                     } else {
-                        connectionStatusLabel.setText("✗ Database disconnected");
+                        connectionStatusLabel.setText("✗ Storage error");
                         connectionStatusLabel.setForeground(new Color(231, 76, 60));
                         showDatabaseError();
                     }

@@ -1,12 +1,9 @@
 package com.vismera.controllers;
 
-import com.vismera.dao.AmortizationRowDAO;
-import com.vismera.dao.CarDAO;
-import com.vismera.dao.CustomerDAO;
-import com.vismera.dao.LoanDAO;
-import com.vismera.dao.PaymentDAO;
+import com.vismera.models.AmortizationRow;
 import com.vismera.models.Loan;
 import com.vismera.models.Payment;
+import com.vismera.storage.TextFileDatabase;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -16,9 +13,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Controller for generating reports and analytics.
+ * Now uses TextFileDatabase for storage.
  * 
  * @author Vismerá Inc.
  */
@@ -28,18 +27,10 @@ public class ReportController {
     
     private static ReportController instance;
     
-    private final LoanDAO loanDAO;
-    private final PaymentDAO paymentDAO;
-    private final CustomerDAO customerDAO;
-    private final CarDAO carDAO;
-    private final AmortizationRowDAO amortizationRowDAO;
+    private final TextFileDatabase database;
     
     private ReportController() {
-        loanDAO = LoanDAO.getInstance();
-        paymentDAO = PaymentDAO.getInstance();
-        customerDAO = CustomerDAO.getInstance();
-        carDAO = CarDAO.getInstance();
-        amortizationRowDAO = AmortizationRowDAO.getInstance();
+        database = TextFileDatabase.getInstance();
     }
     
     /**
@@ -59,23 +50,40 @@ public class ReportController {
         Map<String, Object> summary = new HashMap<>();
         
         // Counts
-        summary.put("totalCustomers", customerDAO.getCount());
-        summary.put("totalCars", carDAO.getCount());
-        summary.put("availableCars", carDAO.getAvailableCount());
-        summary.put("totalLoans", loanDAO.getCount());
-        summary.put("activeLoans", loanDAO.getCountByStatus(Loan.STATUS_ACTIVE));
-        summary.put("closedLoans", loanDAO.getCountByStatus(Loan.STATUS_CLOSED));
+        summary.put("totalCustomers", database.getAllCustomers().size());
+        summary.put("totalCars", database.getAllCars().size());
+        summary.put("availableCars", database.getAvailableCars().size());
+        summary.put("totalLoans", database.getAllLoans().size());
+        summary.put("activeLoans", database.getLoansByStatus(Loan.STATUS_ACTIVE).size());
+        summary.put("closedLoans", database.getLoansByStatus(Loan.STATUS_CLOSED).size());
         
         // Financial
-        summary.put("totalOutstanding", loanDAO.getTotalOutstanding());
+        BigDecimal totalOutstanding = BigDecimal.ZERO;
+        for (Loan loan : database.getLoansByStatus(Loan.STATUS_ACTIVE)) {
+            if (loan.getTotalAmount() != null) {
+                BigDecimal paid = database.getTotalPaidForLoan(loan.getId());
+                totalOutstanding = totalOutstanding.add(loan.getTotalAmount().subtract(paid));
+            }
+        }
+        summary.put("totalOutstanding", totalOutstanding);
         
         // Today's payments
         LocalDate today = LocalDate.now();
-        summary.put("todayPayments", paymentDAO.getTotalInDateRange(today, today));
+        BigDecimal todayPayments = database.getAllPayments().stream()
+            .filter(p -> today.equals(p.getPaymentDate()))
+            .map(Payment::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        summary.put("todayPayments", todayPayments);
         
         // This month's payments
         LocalDate monthStart = today.withDayOfMonth(1);
-        summary.put("monthPayments", paymentDAO.getTotalInDateRange(monthStart, today));
+        BigDecimal monthPayments = database.getAllPayments().stream()
+            .filter(p -> p.getPaymentDate() != null && 
+                        !p.getPaymentDate().isBefore(monthStart) && 
+                        !p.getPaymentDate().isAfter(today))
+            .map(Payment::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        summary.put("monthPayments", monthPayments);
         
         return summary;
     }
@@ -88,9 +96,15 @@ public class ReportController {
         
         List<Loan> loans;
         if (status != null && !status.isEmpty() && !"all".equalsIgnoreCase(status)) {
-            loans = loanDAO.findByStatusWithDetails(status);
+            loans = database.getLoansByStatus(status);
         } else {
-            loans = loanDAO.findAllWithDetails();
+            loans = database.getAllLoans();
+        }
+        
+        // Add details to each loan
+        for (Loan loan : loans) {
+            loan.setCustomer(database.getCustomerById(loan.getCustomerId()));
+            loan.setCar(database.getCarById(loan.getCarId()));
         }
         
         for (Loan loan : loans) {
@@ -106,15 +120,16 @@ public class ReportController {
             loanData.put("status", loan.getStatus());
             
             // Payment info
-            BigDecimal totalPaid = paymentDAO.getTotalPaidForLoan(loan.getId());
+            BigDecimal totalPaid = database.getTotalPaidForLoan(loan.getId());
             loanData.put("totalPaid", totalPaid);
             
             BigDecimal remaining = loan.getTotalAmount() != null ? 
                 loan.getTotalAmount().subtract(totalPaid) : BigDecimal.ZERO;
             loanData.put("remainingBalance", remaining.max(BigDecimal.ZERO));
             
-            int paidPeriods = amortizationRowDAO.getPaidPeriodsCount(loan.getId());
-            int totalPeriods = amortizationRowDAO.getTotalPeriodsCount(loan.getId());
+            List<AmortizationRow> amortRows = database.getAmortizationByLoanId(loan.getId());
+            int paidPeriods = (int) amortRows.stream().filter(AmortizationRow::isPaid).count();
+            int totalPeriods = amortRows.size();
             loanData.put("paidPeriods", paidPeriods);
             loanData.put("totalPeriods", totalPeriods);
             loanData.put("progressPercent", totalPeriods > 0 ? (paidPeriods * 100.0 / totalPeriods) : 0);
@@ -131,7 +146,11 @@ public class ReportController {
     public List<Map<String, Object>> getPaymentsReport(LocalDate startDate, LocalDate endDate) {
         List<Map<String, Object>> report = new ArrayList<>();
         
-        List<Payment> payments = paymentDAO.findByDateRange(startDate, endDate);
+        List<Payment> payments = database.getAllPayments().stream()
+            .filter(p -> p.getPaymentDate() != null &&
+                        !p.getPaymentDate().isBefore(startDate) &&
+                        !p.getPaymentDate().isAfter(endDate))
+            .collect(Collectors.toList());
         
         for (Payment payment : payments) {
             Map<String, Object> paymentData = new HashMap<>();
@@ -144,7 +163,7 @@ public class ReportController {
             paymentData.put("note", payment.getNote());
             
             // Get loan and customer info
-            Loan loan = loanDAO.findByIdWithDetails(payment.getLoanId());
+            Loan loan = database.getLoanWithDetails(payment.getLoanId());
             if (loan != null) {
                 paymentData.put("customerName", loan.getCustomer() != null ? 
                     loan.getCustomer().getFullName() : "N/A");
@@ -164,10 +183,16 @@ public class ReportController {
     public List<Map<String, Object>> getOverdueLoansReport() {
         List<Map<String, Object>> report = new ArrayList<>();
         
-        List<Loan> activeLoans = loanDAO.getActiveLoans();
+        List<Loan> activeLoans = database.getLoansByStatus(Loan.STATUS_ACTIVE);
+        LocalDate today = LocalDate.now();
         
         for (Loan loan : activeLoans) {
-            var overdueRows = amortizationRowDAO.findOverdueByLoanId(loan.getId());
+            loan.setCustomer(database.getCustomerById(loan.getCustomerId()));
+            loan.setCar(database.getCarById(loan.getCarId()));
+            
+            List<AmortizationRow> overdueRows = database.getAmortizationByLoanId(loan.getId()).stream()
+                .filter(row -> !row.isPaid() && row.getDueDate() != null && row.getDueDate().isBefore(today))
+                .collect(Collectors.toList());
             
             if (!overdueRows.isEmpty()) {
                 Map<String, Object> overdueData = new HashMap<>();
@@ -206,11 +231,18 @@ public class ReportController {
         LocalDate monthEnd = monthStart.plusMonths(1).minusDays(1);
         
         // Total payments received
-        BigDecimal totalPayments = paymentDAO.getTotalInDateRange(monthStart, monthEnd);
+        List<Payment> payments = database.getAllPayments().stream()
+            .filter(p -> p.getPaymentDate() != null &&
+                        !p.getPaymentDate().isBefore(monthStart) &&
+                        !p.getPaymentDate().isAfter(monthEnd))
+            .collect(Collectors.toList());
+        
+        BigDecimal totalPayments = payments.stream()
+            .map(Payment::getAmount)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
         summary.put("totalPayments", totalPayments);
         
         // Number of payments
-        List<Payment> payments = paymentDAO.findByDateRange(monthStart, monthEnd);
         summary.put("paymentCount", payments.size());
         
         // Penalties collected
@@ -219,8 +251,6 @@ public class ReportController {
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         summary.put("totalPenalties", totalPenalties);
         
-        // New loans in month (approximation based on created_at)
-        // This would need a query by created_at range
         summary.put("monthName", monthStart.format(DateTimeFormatter.ofPattern("MMMM yyyy")));
         
         return summary;
@@ -232,7 +262,9 @@ public class ReportController {
     public Map<String, Object> getCustomerLoansSummary(int customerId) {
         Map<String, Object> summary = new HashMap<>();
         
-        List<Loan> customerLoans = loanDAO.findByCustomerId(customerId);
+        List<Loan> customerLoans = database.getAllLoans().stream()
+            .filter(l -> l.getCustomerId() == customerId)
+            .collect(Collectors.toList());
         
         summary.put("totalLoans", customerLoans.size());
         
@@ -255,7 +287,7 @@ public class ReportController {
         BigDecimal totalOutstanding = BigDecimal.ZERO;
         for (Loan loan : customerLoans) {
             if (Loan.STATUS_ACTIVE.equals(loan.getStatus()) && loan.getTotalAmount() != null) {
-                BigDecimal paid = paymentDAO.getTotalPaidForLoan(loan.getId());
+                BigDecimal paid = database.getTotalPaidForLoan(loan.getId());
                 totalOutstanding = totalOutstanding.add(loan.getTotalAmount().subtract(paid));
             }
         }

@@ -1,9 +1,8 @@
 package com.vismera.controllers;
 
-import com.vismera.dao.CarDAO;
 import com.vismera.models.Car;
+import com.vismera.storage.TextFileDatabase;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -12,7 +11,7 @@ import java.util.stream.Collectors;
 
 /**
  * Controller for managing car data.
- * Now integrated with database through CarDAO.
+ * Now integrated with text file database.
  * 
  * @author Vismerá Inc.
  */
@@ -20,16 +19,12 @@ public class CarController {
     
     private static final Logger LOGGER = Logger.getLogger(CarController.class.getName());
     
-    private List<Car> cars;
     private static CarController instance;
-    private final CarDAO carDAO;
-    private boolean useDatabaseMode = false;
+    private final TextFileDatabase database;
 
     private CarController() {
-        cars = new ArrayList<>();
-        carDAO = CarDAO.getInstance();
-        // Try to load from database, fallback to hardcoded
-        loadCars();
+        database = TextFileDatabase.getInstance();
+        LOGGER.info("CarController initialized with text file database");
     }
 
     /**
@@ -43,125 +38,45 @@ public class CarController {
     }
     
     /**
-     * Enable database mode
+     * Enable database mode (kept for compatibility)
      */
     public void enableDatabaseMode() {
-        this.useDatabaseMode = true;
-        loadCarsFromDatabase();
+        // Text file database is always enabled
     }
     
     /**
-     * Disable database mode (use hardcoded cars)
+     * Disable database mode (kept for compatibility)
      */
     public void disableDatabaseMode() {
-        this.useDatabaseMode = false;
-        loadHardcodedCars();
+        // Text file database is always enabled
     }
     
     /**
-     * Set database mode on/off
-     * @param useDatabase true to use database, false for hardcoded
+     * Set database mode on/off (kept for compatibility)
      */
     public void setUseDatabase(boolean useDatabase) {
-        if (useDatabase) {
-            enableDatabaseMode();
-        } else {
-            disableDatabaseMode();
-        }
+        // Text file database is always enabled
     }
     
     /**
-     * Check if database mode is enabled
+     * Check if database mode is enabled (always true now)
      */
     public boolean isDatabaseModeEnabled() {
-        return useDatabaseMode;
-    }
-
-    /**
-     * Load car data (tries database first, falls back to hardcoded)
-     */
-    private void loadCars() {
-        if (useDatabaseMode) {
-            loadCarsFromDatabase();
-        } else {
-            // Try database first
-            try {
-                List<Car> dbCars = carDAO.findAll();
-                if (!dbCars.isEmpty()) {
-                    cars = dbCars;
-                    useDatabaseMode = true;
-                    LOGGER.info("Loaded " + cars.size() + " cars from database");
-                    return;
-                }
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Could not load cars from database, using hardcoded data", e);
-            }
-            loadHardcodedCars();
-        }
-    }
-    
-    /**
-     * Load cars from database
-     */
-    private void loadCarsFromDatabase() {
-        try {
-            cars = carDAO.findAll();
-            LOGGER.info("Loaded " + cars.size() + " cars from database");
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error loading cars from database", e);
-            cars = new ArrayList<>();
-        }
-    }
-    
-    /**
-     * Load hardcoded car data (fallback for demo/offline mode)
-     */
-    private void loadHardcodedCars() {
-        cars.clear();
-        
-        // Sample cars matching the actual image files in resources/images
-        cars.add(new Car(1, "Mercedes-Benz", "S-Class", 2024, "Luxury Sedan", 
-                        "Silver", 24, 115000.00, "mercedes_sclass.png"));
-        
-        cars.add(new Car(2, "Porsche", "911 Carrera", 2024, "Sports Car", 
-                        "Red", 20, 125000.00, "porsche_911.png"));
-        
-        cars.add(new Car(3, "BMW", "X5 M", 2024, "Luxury SUV", 
-                        "Black", 22, 108000.00, "bmw_x5m.png"));
-        
-        // Additional cars
-        cars.add(new Car(4, "Audi", "RS7", 2024, "Sports Car", 
-                        "Gray", 21, 118000.00, "audi_rs7.png"));
-        
-        cars.add(new Car(5, "Lexus", "LS 500", 2024, "Luxury Sedan", 
-                        "White", 25, 82000.00, "lexus_ls500.png"));
-        
-        cars.add(new Car(6, "Range Rover", "Sport", 2024, "Luxury SUV", 
-                        "Green", 19, 95000.00, "rangerover_sport.png"));
-        
-        LOGGER.info("Loaded " + cars.size() + " hardcoded cars");
+        return true;
     }
 
     /**
      * Get all cars
      */
     public List<Car> getAllCars() {
-        if (useDatabaseMode) {
-            return carDAO.findAll();
-        }
-        return new ArrayList<>(cars);
+        return database.getAllCars();
     }
     
     /**
      * Get available cars (not in active loans)
      */
     public List<Car> getAvailableCars() {
-        if (useDatabaseMode) {
-            return carDAO.findAvailable();
-        }
-        return cars.stream()
-            .filter(Car::isAvailable)
-            .collect(Collectors.toList());
+        return database.getAvailableCars();
     }
 
     /**
@@ -172,13 +87,9 @@ public class CarController {
             return getAllCars();
         }
         
-        if (useDatabaseMode) {
-            return carDAO.searchCars(query);
-        }
-        
         String lowerQuery = query.toLowerCase().trim();
         
-        return cars.stream()
+        return database.getAllCars().stream()
             .filter(car -> 
                 car.getMake().toLowerCase().contains(lowerQuery) ||
                 car.getModel().toLowerCase().contains(lowerQuery) ||
@@ -193,23 +104,14 @@ public class CarController {
      * Get a car by its ID
      */
     public Car getCarById(int id) {
-        if (useDatabaseMode) {
-            return carDAO.findById(id);
-        }
-        return cars.stream()
-            .filter(car -> car.getId() == id)
-            .findFirst()
-            .orElse(null);
+        return database.getCarById(id);
     }
 
     /**
      * Get cars filtered by category
      */
     public List<Car> getCarsByCategory(String category) {
-        if (useDatabaseMode) {
-            return carDAO.findByCategory(category);
-        }
-        return cars.stream()
+        return database.getAllCars().stream()
             .filter(car -> car.getCategory() != null && car.getCategory().equalsIgnoreCase(category))
             .collect(Collectors.toList());
     }
@@ -218,7 +120,7 @@ public class CarController {
      * Get cars within a price range
      */
     public List<Car> getCarsByPriceRange(double minPrice, double maxPrice) {
-        return cars.stream()
+        return database.getAllCars().stream()
             .filter(car -> car.getPrice() >= minPrice && car.getPrice() <= maxPrice)
             .collect(Collectors.toList());
     }
@@ -227,10 +129,7 @@ public class CarController {
      * Get distinct categories
      */
     public List<String> getCategories() {
-        if (useDatabaseMode) {
-            return carDAO.getDistinctCategories();
-        }
-        return cars.stream()
+        return database.getAllCars().stream()
             .map(Car::getCategory)
             .filter(cat -> cat != null)
             .distinct()
@@ -241,10 +140,7 @@ public class CarController {
      * Get distinct years
      */
     public List<Integer> getDistinctYears() {
-        if (useDatabaseMode) {
-            return carDAO.getDistinctYears();
-        }
-        return cars.stream()
+        return database.getAllCars().stream()
             .map(Car::getYear)
             .distinct()
             .sorted((a, b) -> b - a)
@@ -265,7 +161,7 @@ public class CarController {
             return -1;
         }
         
-        int id = carDAO.insert(car);
+        int id = database.addCar(car);
         if (id > 0) {
             LOGGER.info("Car added: " + car.getDisplayName() + " (ID: " + id + ")");
         }
@@ -284,13 +180,13 @@ public class CarController {
             return false;
         }
         
-        Car existing = carDAO.findById(car.getId());
+        Car existing = database.getCarById(car.getId());
         if (existing == null) {
             LOGGER.warning("Car not found: " + car.getId());
             return false;
         }
         
-        boolean updated = carDAO.update(car);
+        boolean updated = database.updateCar(car);
         if (updated) {
             LOGGER.info("Car updated: " + car.getDisplayName() + " (ID: " + car.getId() + ")");
         }
@@ -308,7 +204,7 @@ public class CarController {
             return validationError;
         }
         
-        int id = carDAO.insert(car);
+        int id = database.addCar(car);
         if (id > 0) {
             LOGGER.info("Car created: " + car.getDisplayName() + " (ID: " + id + ")");
             return "SUCCESS";
@@ -327,37 +223,28 @@ public class CarController {
             LOGGER.warning("Cannot delete car in active loan: " + id);
             return false;
         }
-        return carDAO.delete(id);
+        return database.deleteCar(id);
     }
     
     /**
      * Check if car is in an active loan
      */
     public boolean isCarInActiveLoan(int carId) {
-        if (useDatabaseMode) {
-            return carDAO.isCarInActiveLoan(carId);
-        }
-        return false;
+        return database.isCarInActiveLoan(carId);
     }
     
     /**
      * Get car count
      */
     public int getCarCount() {
-        if (useDatabaseMode) {
-            return carDAO.getCount();
-        }
-        return cars.size();
+        return database.getAllCars().size();
     }
     
     /**
      * Get available car count
      */
     public int getAvailableCarCount() {
-        if (useDatabaseMode) {
-            return carDAO.getAvailableCount();
-        }
-        return (int) cars.stream().filter(Car::isAvailable).count();
+        return database.getAvailableCars().size();
     }
     
     /**
@@ -391,6 +278,7 @@ public class CarController {
      * Refresh car data
      */
     public void refreshData() {
-        loadCars();
+        // Data is always fresh from text file
+        LOGGER.info("Car data refreshed");
     }
 }

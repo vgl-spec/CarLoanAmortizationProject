@@ -1,14 +1,17 @@
 package com.vismera.controllers;
 
-import com.vismera.dao.AdminSettingDAO;
 import com.vismera.models.AdminSetting;
+import com.vismera.storage.TextFileDatabase;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
 /**
  * Controller for application settings management.
+ * Now uses TextFileDatabase for storage.
  * 
  * @author Vismerá Inc.
  */
@@ -18,10 +21,10 @@ public class SettingsController {
     
     private static SettingsController instance;
     
-    private final AdminSettingDAO settingDAO;
+    private final TextFileDatabase database;
     
     private SettingsController() {
-        settingDAO = AdminSettingDAO.getInstance();
+        database = TextFileDatabase.getInstance();
     }
     
     /**
@@ -38,21 +41,37 @@ public class SettingsController {
      * Get all settings as a map (key -> value)
      */
     public Map<String, String> getAllSettings() {
-        return settingDAO.findAllAsMap();
+        // Simplified - return a map with defaults
+        Map<String, String> settings = new HashMap<>();
+        settings.put(AdminSetting.KEY_COMPANY_NAME, getCompanyName());
+        settings.put(AdminSetting.KEY_DEFAULT_APR, String.valueOf(getDefaultApr()));
+        settings.put(AdminSetting.KEY_DEFAULT_PENALTY_RATE, String.valueOf(getDefaultPenaltyRate()));
+        settings.put(AdminSetting.KEY_DEFAULT_GRACE_PERIOD, String.valueOf(getDefaultGracePeriod()));
+        settings.put(AdminSetting.KEY_DEFAULT_SALES_TAX_RATE, String.valueOf(getDefaultSalesTaxRate()));
+        settings.put(AdminSetting.KEY_DEFAULT_REGISTRATION_FEE, String.valueOf(getDefaultRegistrationFee()));
+        settings.put(AdminSetting.KEY_DEFAULT_COMPOUNDING, getDefaultCompounding());
+        settings.put(AdminSetting.KEY_CURRENCY_SYMBOL, getCurrencySymbol());
+        settings.put(AdminSetting.KEY_DATE_FORMAT, getDateFormat());
+        settings.put(AdminSetting.KEY_APP_VERSION, getAppVersion());
+        return settings;
     }
     
     /**
      * Get all settings as list of AdminSetting objects
      */
     public List<AdminSetting> getAllSettingsList() {
-        return settingDAO.findAll();
+        List<AdminSetting> list = new ArrayList<>();
+        for (Map.Entry<String, String> entry : getAllSettings().entrySet()) {
+            list.add(new AdminSetting(entry.getKey(), entry.getValue(), ""));
+        }
+        return list;
     }
     
     /**
      * Get all settings as map (alias for getAllSettings)
      */
     public Map<String, String> getAllSettingsMap() {
-        return settingDAO.findAllAsMap();
+        return getAllSettings();
     }
     
     /**
@@ -62,78 +81,93 @@ public class SettingsController {
      * @return The setting value or default
      */
     public String getSetting(String key, String defaultValue) {
-        return settingDAO.getValue(key, defaultValue);
+        return database.getSetting(key, defaultValue);
     }
     
     /**
      * Get a setting entity by key
      */
     public AdminSetting getSettingEntity(String key) {
-        return settingDAO.findByKey(key);
+        String value = database.getSetting(key);
+        return value != null ? new AdminSetting(key, value, "") : null;
     }
     
     /**
      * Get a string setting value
      */
     public String getString(String key, String defaultValue) {
-        return settingDAO.getValue(key, defaultValue);
+        return database.getSetting(key, defaultValue);
     }
     
     /**
      * Get a double setting value
      */
     public double getDouble(String key, double defaultValue) {
-        return settingDAO.getDoubleValue(key, defaultValue);
+        try {
+            String value = database.getSetting(key);
+            return value != null ? Double.parseDouble(value) : defaultValue;
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
     }
     
     /**
      * Get an int setting value
      */
     public int getInt(String key, int defaultValue) {
-        return settingDAO.getIntValue(key, defaultValue);
+        try {
+            String value = database.getSetting(key);
+            return value != null ? Integer.parseInt(value) : defaultValue;
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
     }
     
     /**
      * Get a boolean setting value
      */
     public boolean getBoolean(String key, boolean defaultValue) {
-        return settingDAO.getBooleanValue(key, defaultValue);
+        String value = database.getSetting(key);
+        if (value == null) return defaultValue;
+        return "true".equalsIgnoreCase(value) || "1".equals(value) || "yes".equalsIgnoreCase(value);
     }
     
     /**
      * Save a setting
      */
     public boolean saveSetting(String key, String value) {
-        return settingDAO.setValue(key, value);
+        database.setSetting(key, value);
+        return true;
     }
     
     /**
      * Save a setting with description
      */
     public boolean saveSetting(String key, String value, String description) {
-        AdminSetting setting = new AdminSetting(key, value, description);
-        return settingDAO.upsert(setting);
+        database.setSetting(key, value);
+        return true;
     }
     
     /**
      * Delete a setting
      */
     public boolean deleteSetting(String key) {
-        return settingDAO.delete(key);
+        database.setSetting(key, null);
+        return true;
     }
     
     /**
      * Check if a setting exists
      */
     public boolean exists(String key) {
-        return settingDAO.exists(key);
+        return database.getSetting(key) != null;
     }
     
     /**
      * Reload settings from database
      */
     public void reloadSettings() {
-        settingDAO.reloadCache();
+        // Settings are always fresh from text file
     }
     
     // ==================== CONVENIENCE METHODS FOR COMMON SETTINGS ====================

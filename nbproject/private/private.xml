@@ -4,6 +4,25 @@
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
             <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/carloanamortizationproject/CarLoanAmortizationProject.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/carloanamortizationproject/MainForm.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/views/CarsPanel.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/controllers/CarController.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/views/admin/CarFormDialog.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/controllers/LoanControllerDB.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/views/admin/CarInventoryPanel.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/views/admin/CustomerFormDialog.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/views/admin/CustomerManagementPanel.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/views/admin/LoanFormDialog.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/views/admin/LoanManagementPanel.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/views/admin/PaymentRecordDialog.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/views/admin/SettingsPanel.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/resources/images/audi_rs7.png</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/config/DatabaseConfig.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/config/DatabaseTest.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/views/admin/AdminMainFrame.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/dao/CustomerDAO.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/utils/UIStyler.java</file>
+            <file>file:/C:/Users/verge/OneDrive/Documents/NetBeansProjects/CarLoanAmortizationProject/src/com/vismera/views/CalculatePanel.java</file>
         </group>
     </open-files>
 </project-private>

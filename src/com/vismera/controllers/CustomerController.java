@@ -1,15 +1,15 @@
 package com.vismera.controllers;
 
-import com.vismera.dao.CustomerDAO;
 import com.vismera.models.Customer;
+import com.vismera.storage.TextFileDatabase;
 
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Controller for customer management operations.
- * Provides business logic layer between UI and DAO.
+ * Now uses TextFileDatabase for data storage.
  * 
  * @author Vismerá Inc.
  */
@@ -18,10 +18,10 @@ public class CustomerController {
     private static final Logger LOGGER = Logger.getLogger(CustomerController.class.getName());
     
     private static CustomerController instance;
-    private final CustomerDAO customerDAO;
+    private final TextFileDatabase database;
     
     private CustomerController() {
-        this.customerDAO = CustomerDAO.getInstance();
+        this.database = TextFileDatabase.getInstance();
     }
     
     /**
@@ -46,7 +46,7 @@ public class CustomerController {
             return -1;
         }
         
-        int id = customerDAO.insert(customer);
+        int id = database.addCustomer(customer);
         if (id > 0) {
             LOGGER.info("Customer added: " + customer.getFullName() + " (ID: " + id + ")");
         }
@@ -89,7 +89,7 @@ public class CustomerController {
         }
         
         // Attempt to insert
-        int id = customerDAO.insert(customer);
+        int id = database.addCustomer(customer);
         if (id > 0) {
             LOGGER.info("Customer created: " + customer.getFullName() + " (ID: " + id + ")");
             return "SUCCESS";
@@ -110,13 +110,13 @@ public class CustomerController {
             return false;
         }
         
-        Customer existing = customerDAO.findById(customer.getId());
+        Customer existing = database.getCustomerById(customer.getId());
         if (existing == null) {
             LOGGER.warning("Customer not found: " + customer.getId());
             return false;
         }
         
-        boolean updated = customerDAO.update(customer);
+        boolean updated = database.updateCustomer(customer);
         if (updated) {
             LOGGER.info("Customer updated: " + customer.getFullName() + " (ID: " + customer.getId() + ")");
         }
@@ -136,13 +136,13 @@ public class CustomerController {
         }
         
         // Check if customer exists
-        Customer existing = customerDAO.findById(customer.getId());
+        Customer existing = database.getCustomerById(customer.getId());
         if (existing == null) {
             return "Customer not found.";
         }
         
         // Attempt to update
-        if (customerDAO.update(customer)) {
+        if (database.updateCustomer(customer)) {
             LOGGER.info("Customer updated: " + customer.getFullName() + " (ID: " + customer.getId() + ")");
             return "SUCCESS";
         } else {
@@ -161,7 +161,7 @@ public class CustomerController {
             return false;
         }
         
-        return customerDAO.delete(id);
+        return database.deleteCustomer(id);
     }
     
     /**
@@ -170,7 +170,7 @@ public class CustomerController {
      * @return The customer, or null if not found
      */
     public Customer getCustomer(int id) {
-        return customerDAO.findById(id);
+        return database.getCustomerById(id);
     }
     
     /**
@@ -178,7 +178,7 @@ public class CustomerController {
      * @return List of all customers
      */
     public List<Customer> getAllCustomers() {
-        return customerDAO.findAll();
+        return database.getAllCustomers();
     }
     
     /**
@@ -190,7 +190,14 @@ public class CustomerController {
         if (query == null || query.trim().isEmpty()) {
             return getAllCustomers();
         }
-        return customerDAO.search(query);
+        String lowerQuery = query.toLowerCase().trim();
+        return database.getAllCustomers().stream()
+            .filter(c -> 
+                (c.getFullName() != null && c.getFullName().toLowerCase().contains(lowerQuery)) ||
+                (c.getEmail() != null && c.getEmail().toLowerCase().contains(lowerQuery)) ||
+                (c.getContactNumber() != null && c.getContactNumber().contains(lowerQuery))
+            )
+            .collect(Collectors.toList());
     }
     
     /**
@@ -199,7 +206,7 @@ public class CustomerController {
      * @return true if can be deleted
      */
     public boolean canDeleteCustomer(int customerId) {
-        return !customerDAO.hasActiveLoans(customerId);
+        return !database.customerHasActiveLoans(customerId);
     }
     
     /**
@@ -208,7 +215,7 @@ public class CustomerController {
      * @return true if has loans
      */
     public boolean hasLoans(int customerId) {
-        return customerDAO.hasLoans(customerId);
+        return database.customerHasLoans(customerId);
     }
     
     /**
@@ -216,7 +223,7 @@ public class CustomerController {
      * @return Customer count
      */
     public int getCustomerCount() {
-        return customerDAO.getCount();
+        return database.getAllCustomers().size();
     }
     
     /**

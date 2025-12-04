@@ -18,12 +18,10 @@ public class MainFrame extends JFrame {
     // Panels
     private CarsPanel carsPanel;
     private CalculatePanel calculatePanel;
-    private ComparePanel comparePanel;
     
     // Navigation buttons
     private JButton calculateNavBtn;
     private JButton carsNavBtn;
-    private JButton compareNavBtn;
     
     private String currentPanel = "cars";
     
@@ -37,6 +35,7 @@ public class MainFrame extends JFrame {
         setSize(1200, 800);
         setMinimumSize(new Dimension(1000, 700));
         setLocationRelativeTo(null);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         
         // Main layout
         setLayout(new BorderLayout());
@@ -54,11 +53,9 @@ public class MainFrame extends JFrame {
         // Create panels
         carsPanel = new CarsPanel(this);
         calculatePanel = new CalculatePanel(this);
-        comparePanel = new ComparePanel(this);
-        
+                
         contentPanel.add(carsPanel, "cars");
         contentPanel.add(calculatePanel, "calculate");
-        contentPanel.add(comparePanel, "compare");
         
         add(contentPanel, BorderLayout.CENTER);
         
@@ -114,23 +111,9 @@ public class MainFrame extends JFrame {
         
         calculateNavBtn = createNavButton("📊 Calculate", "calculate");
         carsNavBtn = createNavButton("🚗 Cars", "cars");
-        compareNavBtn = createNavButton("📈 Compare", "compare");
-        
-        // Admin button
-        JButton adminNavBtn = new JButton("⚙ Admin");
-        adminNavBtn.setFont(UIStyler.BUTTON_FONT);
-        adminNavBtn.setPreferredSize(new Dimension(130, 40));
-        adminNavBtn.setBorderPainted(false);
-        adminNavBtn.setFocusPainted(false);
-        adminNavBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        adminNavBtn.setBackground(new Color(220, 38, 38)); // Red background
-        adminNavBtn.setForeground(Color.WHITE);
-        adminNavBtn.addActionListener(e -> openAdminPanel());
         
         navContainer.add(calculateNavBtn);
         navContainer.add(carsNavBtn);
-        navContainer.add(compareNavBtn);
-        navContainer.add(adminNavBtn);
         
         navSection.add(navContainer);
         
@@ -181,9 +164,6 @@ public class MainFrame extends JFrame {
         carsNavBtn.setBackground(UIStyler.BACKGROUND_LIGHT);
         carsNavBtn.setForeground(UIStyler.TEXT_SECONDARY);
         
-        compareNavBtn.setBackground(UIStyler.BACKGROUND_LIGHT);
-        compareNavBtn.setForeground(UIStyler.TEXT_SECONDARY);
-        
         // Highlight active button
         JButton activeBtn = null;
         switch (currentPanel) {
@@ -192,9 +172,6 @@ public class MainFrame extends JFrame {
                 break;
             case "cars":
                 activeBtn = carsNavBtn;
-                break;
-            case "compare":
-                activeBtn = compareNavBtn;
                 break;
         }
         
@@ -213,19 +190,6 @@ public class MainFrame extends JFrame {
     public void showCalculatePanel(Car selectedCar) {
         calculatePanel.setSelectedCar(selectedCar);
         showPanel("calculate");
-    }
-    
-    private void openAdminPanel() {
-        // Open Admin Panel in new window
-        try {
-            com.vismera.views.admin.AdminMainFrame adminFrame = new com.vismera.views.admin.AdminMainFrame();
-            adminFrame.setVisible(true);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, 
-                "Could not open Admin Panel.\nError: " + e.getMessage(),
-                "Admin Panel Error", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
     }
     
     public static void main(String[] args) {

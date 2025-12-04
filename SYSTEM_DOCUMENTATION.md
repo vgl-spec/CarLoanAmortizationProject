@@ -1,6 +1,6 @@
 # Vismerá Inc. Car Loan Amortization System with Database
 ## Technical Documentation for Defense Presentation
-### Document Version: 3.0 (H2 Embedded Database - No Server Required)
+### Document Version: 4.0 (Text File Database - No Server Required)
 
 ---
 
