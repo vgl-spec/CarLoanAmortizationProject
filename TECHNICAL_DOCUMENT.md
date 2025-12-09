@@ -1,12 +1,12 @@
-# CAR LOAN AMORTIZATION SYSTEM
+# CAR LOAN AMORTIZATION CALCULATOR
 ## Technical Documentation
 
-**Project Name:** Car Loan Amortization Project  
+**Project Name:** Car Loan Amortization Calculator  
 **Organization:** Vismerá Inc.  
-**Version:** 3.0.0  
+**Version:** 5.0.0  
 **Date:** December 2025  
 **Platform:** Java Desktop Application (Swing)  
-**Database:** H2 Embedded Database  
+**Data Storage:** In-Memory (No Database Required)  
 
 ---
 
@@ -25,7 +25,7 @@
 
 ## 1.1 System Overview
 
-The **Car Loan Amortization System** is a comprehensive Java Swing desktop application designed for automotive financing operations. The system provides end-to-end loan management capabilities including car inventory management, customer management, loan calculations with compound interest, amortization schedule generation, payment tracking, and administrative reporting.
+The **Car Loan Amortization Calculator** is a Java Swing desktop application designed for automotive loan calculations. The system provides loan calculation capabilities with compound interest, penalty simulation, amortization schedule generation, and loan scenario comparison. This is a standalone calculator that requires no database - all data is processed in-memory.
 
 ## 1.2 Purpose and Objectives
 
@@ -33,11 +33,10 @@ The system is designed to:
 
 - **Calculate loan payments** using compound interest formulas with configurable compounding frequencies
 - **Generate amortization schedules** showing principal, interest, and balance breakdown for each payment period
-- **Manage car inventory** with detailed vehicle specifications and pricing
-- **Track customers** with contact information and loan history
-- **Process payments** with penalty calculations for late payments
-- **Generate reports** for business analytics and decision-making
-- **Compare loan scenarios** to help customers find optimal financing terms
+- **Simulate penalties** for missed payments with interest capitalization
+- **Compare loan scenarios** to help users find optimal financing terms
+- **Browse sample cars** for demonstration purposes
+- **Export schedules** to secure TXT files with SHA-256 hashing
 
 ## 1.3 Key Features
 
@@ -45,50 +44,37 @@ The system is designed to:
 |---------|-------------|
 | **Loan Calculator** | Calculate monthly payments with compound interest |
 | **Amortization Schedule** | Generate detailed payment schedules |
-| **Car Inventory** | Manage vehicle listings with images and specifications |
-| **Customer Management** | CRUD operations for customer records |
-| **Payment Tracking** | Record and track loan payments with penalty handling |
+| **Penalty Simulation** | Simulate missed payments with penalty calculations |
 | **Scenario Comparison** | Compare multiple loan options side-by-side |
-| **Report Generation** | Generate business analytics reports |
-| **CSV Export** | Export data to CSV format |
+| **Car Browser** | Browse sample car inventory for demonstration |
+| **Secure Export** | Export amortization data to TXT with SHA-256 hashing |
 
 ## 1.4 System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      PRESENTATION LAYER                         │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
-│  │  MainFrame   │  │ AdminFrame   │  │    Dialog Windows    │  │
-│  │  (Customer)  │  │  (Admin)     │  │  (Forms & Details)   │  │
-│  └──────────────┘  └──────────────┘  └──────────────────────┘  │
+│  ┌──────────────┐  ┌────────────────────────────────────────────┐  │
+│  │  MainFrame   │  │       Panels & Dialog Windows          │  │
+│  │ (Calculator) │  │ CarsPanel, CalculatePanel, ComparePanel │  │
+│  └──────────────┘  └────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                      CONTROLLER LAYER                           │
 │  ┌────────────────┐  ┌──────────────┐  ┌────────────────────┐  │
-│  │ LoanController │  │CarController │  │ CustomerController │  │
-│  │ PaymentController│ │ComparisonCtrl│  │  ReportController  │  │
+│  │ LoanController │  │ CarController  │  │ComparisonController│  │
 │  └────────────────┘  └──────────────┘  └────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     DATA ACCESS LAYER                           │
-│  ┌──────────┐  ┌──────────┐  ┌────────────┐  ┌──────────────┐  │
-│  │ LoanDAO  │  │  CarDAO  │  │CustomerDAO │  │  PaymentDAO  │  │
-│  │AmortDAO  │  │SettingsDAO│ │            │  │              │  │
-│  └──────────┘  └──────────┘  └────────────┘  └──────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      DATABASE LAYER                             │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │              H2 Embedded Database                        │   │
-│  │   Tables: customers, cars, loans, payments,              │   │
-│  │           amortization_rows, admin_settings              │   │
-│  └─────────────────────────────────────────────────────────┘   │
+│                        MODEL LAYER                              │
+│  ┌──────────────────┐  ┌────────────────┐  ┌────────────────┐  │
+│  │ LoanCalculation  │  │      Car       │  │  LoanScenario  │  │
+│  │AmortizationEntry│  └────────────────┘  └────────────────┘  │
+│  └──────────────────┘                                         │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -98,38 +84,27 @@ The system is designed to:
 |-----------|------------|
 | **Language** | Java 17+ |
 | **UI Framework** | Java Swing |
-| **Database** | H2 Embedded Database 2.2.224 |
+| **Data Storage** | In-Memory (ArrayList) |
 | **Build System** | Apache Ant (NetBeans) |
 | **IDE** | NetBeans IDE |
 | **Currency** | Philippine Peso (₱) |
+| **Security** | SHA-256 for data export hashing |
 
 ---
 
 # 2. PROJECT MECHANICS / RULES / INSTRUCTIONS
 
-## 2.1 User Roles and Access
+## 2.1 User Interface
 
-The system supports two primary user interfaces:
+The system provides a single unified interface for loan calculations:
 
-### 2.1.1 Customer Interface (MainFrame)
+### 2.1.1 Calculator Interface (MainFrame)
 
 | Panel | Purpose | Access |
 |-------|---------|--------|
-| **Cars Panel** | Browse available vehicles | Public |
+| **Cars Panel** | Browse sample vehicles | Public |
 | **Calculate Panel** | Calculate loan payments | Public |
 | **Compare Panel** | Compare loan scenarios | Public |
-
-### 2.1.2 Administrative Interface (AdminMainFrame)
-
-| Panel | Purpose | Access |
-|-------|---------|--------|
-| **Dashboard** | System overview and statistics | Admin |
-| **Customers** | Customer CRUD operations | Admin |
-| **Cars** | Vehicle inventory management | Admin |
-| **Loans** | Loan management and tracking | Admin |
-| **Payments** | Payment recording and history | Admin |
-| **Reports** | Generate business reports | Admin |
-| **Settings** | System configuration | Admin |
 
 ## 2.2 Business Rules
 
@@ -1163,31 +1138,25 @@ public static final Color BACKGROUND_WHITE = Color.WHITE;
 public static final Color BORDER_GRAY = new Color(209, 213, 219);     // #D1D5DB
 ```
 
-## 6.4 Database Configuration Variables
+## 6.4 In-Memory Configuration
 
-### 6.4.1 DatabaseConfig.java Variables
+### 6.4.1 Sample Data Storage
 
-| Variable | Type | Value | Purpose |
-|----------|------|-------|---------|
-| `DB_FOLDER` | `String` | `.vismera/data` | Database folder name |
-| `DB_NAME` | `String` | `carloan_db` | Database file name |
-| `DRIVER` | `String` | `org.h2.Driver` | JDBC driver class |
-| `initialized` | `boolean` | `false` | Initialization flag |
+The system uses in-memory ArrayList to store sample car data. No external database or configuration files are required.
 
-### 6.4.2 Connection URL Format
-
-```
-jdbc:h2:file:{user.home}/.vismera/data/carloan_db;MODE=MySQL;AUTO_SERVER=TRUE;DB_CLOSE_DELAY=-1
-```
+| Variable | Type | Purpose |
+|----------|------|---------|
+| `cars` | `ArrayList<Car>` | Stores sample car inventory |
+| `scenarios` | `ArrayList<LoanScenario>` | Stores comparison scenarios |
 
 ---
 
-*[Document continues in Part 2 with Sections 7-11]*
+*[End of Part 1 - Calculator Application]*
 
 ---
 
 **Document Information:**
 - **Generated:** December 2025
 - **Author:** Technical Documentation System
-- **Version:** 1.0
-- **Status:** Part 1 of 2
+- **Version:** 5.0 (Calculator Only - No Database)
+- **Status:** Complete

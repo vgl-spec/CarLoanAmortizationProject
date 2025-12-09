@@ -3,6 +3,7 @@ package com.vismera.views;
 import com.vismera.models.AmortizationEntry;
 import com.vismera.models.LoanCalculation;
 import com.vismera.utils.CSVExporter;
+import com.vismera.utils.SecureFileExporter;
 import com.vismera.utils.FormatUtils;
 import com.vismera.utils.UIStyler;
 import java.awt.*;
@@ -74,15 +75,20 @@ public class AmortizationScheduleFrame extends JFrame {
         JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         buttonsPanel.setBackground(UIStyler.BACKGROUND_LIGHT);
         
-        JButton exportButton = new JButton("Export to CSV");
-        UIStyler.stylePrimaryButton(exportButton);
-        exportButton.addActionListener(e -> exportToCSV());
+        JButton importButton = new JButton("Import");
+        UIStyler.styleSecondaryButton(importButton);
+        importButton.addActionListener(e -> importFromTXT());
+        
+        JButton exportTxtButton = new JButton("Export");
+        UIStyler.stylePrimaryButton(exportTxtButton);
+        exportTxtButton.addActionListener(e -> exportToSecureTXT());
         
         JButton closeButton = new JButton("Close");
         UIStyler.styleSecondaryButton(closeButton);
         closeButton.addActionListener(e -> closeAndShowParent());
         
-        buttonsPanel.add(exportButton);
+        buttonsPanel.add(importButton);
+        buttonsPanel.add(exportTxtButton);
         buttonsPanel.add(closeButton);
         
         mainPanel.add(buttonsPanel, BorderLayout.SOUTH);
@@ -215,5 +221,13 @@ public class AmortizationScheduleFrame extends JFrame {
     
     private void exportToCSV() {
         CSVExporter.exportWithFileChooser(schedule, this);
+    }
+    
+    private void exportToSecureTXT() {
+        SecureFileExporter.exportWithFileChooser(schedule, loan, this);
+    }
+    
+    private void importFromTXT() {
+        SecureFileExporter.importWithFileChooser(this);
     }
 }

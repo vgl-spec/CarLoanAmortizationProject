@@ -32,6 +32,23 @@ public class Car {
     }
 
     /**
+     * Simple constructor for sample data (no MPG)
+     */
+    public Car(int id, String make, String model, int year, double price, 
+               String category, String color, String imagePath) {
+        this.id = id;
+        this.make = make;
+        this.model = model;
+        this.year = year;
+        this.price = BigDecimal.valueOf(price);
+        this.category = category;
+        this.color = color;
+        this.mpg = 0;
+        this.imagePath = imagePath;
+        this.available = true;
+    }
+
+    /**
      * Constructor for UI compatibility (with double price)
      */
     public Car(int id, String make, String model, int year, String category, 
