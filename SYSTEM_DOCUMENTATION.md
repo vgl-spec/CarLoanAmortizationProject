@@ -727,6 +727,376 @@ private void addScenario() {
 }
 ```
 
+### 5.5 Import/Export System Algorithms
+
+#### `SecureFileExporter.importSecureSchedule(String filePath)`
+```java
+/**
+ * Imports and validates TXT file with SHA-256 hash verification.
+ * 
+ * Algorithm Flow:
+ * 1. Read file line by line
+ * 2. Parse pipe-delimited records
+ * 3. Extract data and hash from each line
+ * 4. Recalculate SHA-256 hash from data
+ * 5. Compare calculated vs stored hash
+ * 6. If mismatch → Mark as tampered
+ * 7. Display import dialog with verification results
+ * 
+ * Input Format (per line):
+ * ID|Name|Type|Status|Amount|Rate|Payment|Interest|Total|Term|DateRange | ORIGINAL_HASH
+ * 
+ * Validation Process:
+ * - Extract: "43|Loan Payment #43|Amortization|Active|₱7,776,500.00|..."
+ * - Calculate: SHA256("43|Loan Payment #43|Amortization|Active|₱7,776,500.00|...")
+ * - Compare: CALCULATED_HASH == STORED_HASH
+ * 
+ * @param filePath Path to TXT file
+ * @return ImportResult object containing data and validation status
+ */
+public static ImportResult importSecureSchedule(String filePath) {
+    List<ImportRecord> records = new ArrayList<>();
+    List<HashValidation> validations = new ArrayList<>();
+    
+    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+        String line;
+        int lineNumber = 1;
+        
+        while ((line = reader.readLine()) != null) {
+            // Skip separator lines
+            if (line.startsWith("----")) continue;
+            
+            // Parse: DATA | HASH
+            String[] parts = line.split(" \\| ");
+            if (parts.length != 2) continue;
+            
+            String recordData = parts[0];
+            String storedHash = parts[1];
+            
+            // Recalculate hash
+            String calculatedHash = hashSHA256(recordData);
+            
+            // Parse record fields
+            String[] fields = recordData.split("\\|");
+            ImportRecord record = new ImportRecord(
+                Integer.parseInt(fields[0]),    // ID
+                fields[1],                      // Name
+                fields[2],                      // Type
+                fields[3],                      // Status
+                parseAmount(fields[4]),         // Amount
+                parseRate(fields[5]),           // Rate
+                parseAmount(fields[6]),         // Payment
+                parseAmount(fields[7]),         // Interest
+                parseAmount(fields[8]),         // Total
+                Integer.parseInt(fields[9]),    // Term
+                fields[10]                      // DateRange
+            );
+            
+            // Validation result
+            boolean isValid = calculatedHash.equals(storedHash);
+            validations.add(new HashValidation(
+                lineNumber, recordData, storedHash, 
+                calculatedHash, isValid
+            ));
+            
+            records.add(record);
+            lineNumber++;
+        }
+        
+        return new ImportResult(records, validations);
+        
+    } catch (IOException | NumberFormatException e) {
+        throw new ImportException("File format error: " + e.getMessage());
+    }
+}
+```
+
+#### Import Dialog Display Algorithm
+```java
+/**
+ * Creates tabbed dialog showing import results.
+ * 
+ * Tab 1: Loan Records Table
+ * ┌─────┬──────────────────┬──────────┬─────────┬─────────────┐
+ * │ ID  │ Name             │ Type     │ Payment │ Interest    │
+ * ├─────┼──────────────────┼──────────┼─────────┼─────────────┤
+ * │ 43  │ Loan Payment #43 │ Amortiz. │₱152,156 │₱2,408      │
+ * └─────┴──────────────────┴──────────┴─────────┴─────────────┘
+ * 
+ * Tab 2: Hash Verification Table
+ * ┌──────┬──────────┬─────────────────┬─────────────────┬─────────┐
+ * │ Line │ Status   │ Stored Hash     │ Calculated Hash │ Valid   │
+ * ├──────┼──────────┼─────────────────┼─────────────────┼─────────┤
+ * │ 1    │ ✓ Valid  │ 1F1E4387A8...   │ 1F1E4387A8...   │ ✓ Match │
+ * │ 2    │ ✗ Invalid│ ABC123DEF4...   │ XYZ789GHI1...   │ ✗ Tamper│
+ * └──────┴──────────┴─────────────────┴─────────────────┴─────────┘
+ * 
+ * Color Coding:
+ * - Valid records: Green background
+ * - Tampered records: Red background
+ * - Hash mismatch: Red text
+ */
+private static void showImportDialog(ImportResult result) {
+    JDialog dialog = new JDialog();
+    JTabbedPane tabbedPane = new JTabbedPane();
+    
+    // Tab 1: Records
+    JTable recordsTable = createRecordsTable(result.getRecords());
+    tabbedPane.addTab("Loan Records", new JScrollPane(recordsTable));
+    
+    // Tab 2: Hash Verification
+    JTable hashTable = createHashVerificationTable(result.getValidations());
+    tabbedPane.addTab("SHA-256 Hash Verification", new JScrollPane(hashTable));
+    
+    dialog.add(tabbedPane);
+    dialog.setModal(true);
+    dialog.setVisible(true);
+}
+```
+
+#### Export Algorithm Flowchart
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    EXPORT ALGORITHM                         │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  INPUT: List<AmortizationEntry>, LoanCalculation           │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Initialize: recordId = 1, FileWriter                      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                     ◇─────────────────◇
+                    ╱                   ╲
+                   ╱ For each entry in   ╲
+                   ╲    entries list     ╱
+                    ╲                   ╱
+                     ◇────────┬────────◇
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Build Record String (Pipe-Delimited):                     │
+│  ID|Name|Type|Status|Amount|Rate|Payment|Interest|Total|    │
+│  Term|DateRange                                             │
+│                                                             │
+│  Example:                                                   │
+│  "43|Loan Payment #43|Amortization|Active|₱7,776,500.00|   │
+│  6.50%|₱152,156.15|₱2,408.60|₱6,542,649.45|5|             │
+│  Dec 10, 2025 - Dec 10, 2030"                              │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Calculate SHA-256 Hash:                                    │
+│  1. Convert string to UTF-8 bytes                          │
+│  2. Apply SHA-256 algorithm                                 │
+│  3. Convert result to uppercase hex                         │
+│                                                             │
+│  Result: "1F1E4387A80FFDB6F7FB1569F1F117F25A5FC23C63C52A   │
+│          8490B98F515B5FEFBD"                                │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Write to File:                                             │
+│  recordData + " | " + hash                                  │
+│  "----------------------------------------"                 │
+│                                                             │
+│  Output Line:                                               │
+│  43|Loan Payment #43|...|Dec 10, 2030 | 1F1E4387A8...      │
+│  ----------------------------------------                   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  recordId++, Continue Loop                                  │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Close File, Return Success                                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Import Algorithm Flowchart
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    IMPORT ALGORITHM                         │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  INPUT: File Path (TXT file)                                │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Initialize: records = [], validations = [], lineNum = 1   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                     ◇─────────────────◇
+                    ╱                   ╲
+                   ╱ Read next line from ╲
+                   ╲       file          ╱
+                    ╲                   ╱
+                     ◇────────┬────────◇
+                              │
+                        ┌─────┴─────┐
+                        │           │
+                   END OF FILE    HAS DATA
+                        │           │
+                        ▼           ▼
+               ┌─────────────┐ ┌─────────────────────────────┐
+               │   FINISH    │ │ Skip if separator line      │
+               │   IMPORT    │ │ (starts with "----")        │
+               └─────────────┘ └──────────┬──────────────────┘
+                        │                 │
+                        │                 ▼
+                        │    ┌─────────────────────────────┐
+                        │    │ Split line: "DATA | HASH"   │
+                        │    └──────────┬──────────────────┘
+                        │               │
+                        │               ▼
+                        │    ┌─────────────────────────────┐
+                        │    │ Extract: recordData, hash   │
+                        │    └──────────┬──────────────────┘
+                        │               │
+                        │               ▼
+                        │    ┌─────────────────────────────┐
+                        │    │ Recalculate SHA-256 hash    │
+                        │    │ from recordData             │
+                        │    └──────────┬──────────────────┘
+                        │               │
+                        │               ▼
+                        │         ◇─────────────────◇
+                        │        ╱                   ╲
+                        │       ╱ calculatedHash ==   ╲
+                        │       ╲    storedHash ?     ╱
+                        │        ╲                   ╱
+                        │         ◇────────┬────────◇
+                        │                  │
+                        │         ┌────────┴────────┐
+                        │         │                 │
+                        │      MATCH           NO MATCH
+                        │         │                 │
+                        │         ▼                 ▼
+                        │ ┌──────────────┐ ┌──────────────────┐
+                        │ │ Mark as VALID│ │ Mark as TAMPERED │
+                        │ │ (Green)      │ │ (Red)            │
+                        │ └──────┬───────┘ └──────┬───────────┘
+                        │        │                │
+                        │        └────────────────┘
+                        │                 │
+                        │                 ▼
+                        │    ┌─────────────────────────────┐
+                        │    │ Parse record fields:        │
+                        │    │ Split by "|"                │
+                        │    │ Create ImportRecord object  │
+                        │    └──────────┬──────────────────┘
+                        │               │
+                        │               ▼
+                        │    ┌─────────────────────────────┐
+                        │    │ Add to records list         │
+                        │    │ Add to validations list     │
+                        │    │ lineNum++                   │
+                        │    └──────────┬──────────────────┘
+                        │               │
+                        │               └─────────────────────────┐
+                        │                                         │
+                        └─────────────────────────────────────────┘
+                                                 │
+                                                 ▼
+                                ┌─────────────────────────────┐
+                                │ Return ImportResult:        │
+                                │ - List of parsed records    │
+                                │ - Hash validation results   │
+                                │ - Tampering indicators      │
+                                └─────────────────────────────┘
+```
+
+#### Hash Verification Algorithm
+```java
+/**
+ * SHA-256 Hash Verification Process
+ * 
+ * Purpose: Detect data tampering in exported files
+ * 
+ * Steps:
+ * 1. Original Export: Calculate SHA-256 of record data
+ * 2. File Storage: Store "DATA | HASH" format
+ * 3. Import Verification: Recalculate hash, compare
+ * 4. Result: VALID (untampered) or INVALID (tampered)
+ * 
+ * Security Features:
+ * - 256-bit cryptographic hash (virtually impossible to forge)
+ * - Detects any modification: single character change = different hash
+ * - Uppercase hex format for consistency
+ * - UTF-8 encoding for international character support
+ */
+public static String hashSHA256(String input) {
+    try {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+        
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex.toUpperCase());
+        }
+        
+        return hexString.toString();
+        
+    } catch (NoSuchAlgorithmException e) {
+        throw new RuntimeException("SHA-256 algorithm not available", e);
+    }
+}
+```
+
+#### Data Integrity Validation
+```java
+/**
+ * Validation Results Processing
+ * 
+ * Classification:
+ * - VALID: Hash matches → Data is authentic
+ * - TAMPERED: Hash mismatch → Data modified after export
+ * - CORRUPTED: Parse error → File format issues
+ * - MISSING: Required fields absent → Incomplete record
+ * 
+ * Visual Indicators:
+ * - Green checkmark (✓): Verified authentic
+ * - Red X mark (✗): Detected tampering
+ * - Yellow warning (⚠): Format issues
+ * - Gray dash (-): Unable to verify
+ */
+public enum ValidationStatus {
+    VALID("✓ Valid", Color.GREEN),
+    TAMPERED("✗ Tampered", Color.RED),
+    CORRUPTED("⚠ Corrupted", Color.ORANGE),
+    MISSING("- Missing", Color.GRAY);
+    
+    private final String displayText;
+    private final Color color;
+    
+    ValidationStatus(String displayText, Color color) {
+        this.displayText = displayText;
+        this.color = color;
+    }
+    
+    public String getDisplayText() { return displayText; }
+    public Color getColor() { return color; }
+}
+```
+
 ---
 
 ## Appendix: Quick Reference

@@ -217,12 +217,77 @@ The system implements the following categories of algorithms:
 | Penalty Calculation | `PaymentController.java` | Calculate late payment penalties |
 | Effective Rate Conversion | `LoanCalculation.java` | Convert APR to effective rate |
 
-### 3.1.2 Search Algorithms
+### 3.1.3 Data Security Algorithms
 
 | Algorithm | Location | Purpose |
 |-----------|----------|---------|
-| Linear Search | `CarController.java` | Search cars by make/model |
-| SQL LIKE Search | `CarDAO.java`, `CustomerDAO.java` | Database text search |
+| SHA-256 Hashing | `SecureFileExporter.java` | Generate cryptographic hashes for data integrity |
+| Hash Verification | Import functions | Detect data tampering during file import |
+| UTF-8 Encoding | File I/O operations | Ensure consistent character encoding |
+
+### 3.1.4 File Processing Algorithms
+
+| Algorithm | Location | Purpose |
+|-----------|----------|---------|
+| Pipe-Delimited Parsing | `SecureFileExporter.java` | Parse structured data from TXT files |
+| Record Validation | Import validation | Verify file format and data integrity |
+| Line-by-Line Processing | File readers | Efficient large file handling |
+
+## 3.2 Algorithm Implementation Examples
+
+### 3.2.1 SHA-256 Hash Generation
+```java
+// Implementation in SecureFileExporter.java
+public static String hashSHA256(String input) {
+    MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+    
+    StringBuilder hexString = new StringBuilder();
+    for (byte b : hash) {
+        String hex = Integer.toHexString(0xff & b);
+        if (hex.length() == 1) hexString.append('0');
+        hexString.append(hex.toUpperCase());
+    }
+    return hexString.toString(); // 64-character uppercase hex
+}
+```
+
+### 3.2.2 Export Data Format Algorithm
+```java
+// Pipe-delimited format generation
+String recordData = String.format(
+    "%d|%s|%s|%s|₱%.2f|%.2f%%|₱%.2f|₱%.2f|₱%.2f|%d|%s",
+    recordId,           // Unique ID
+    "Loan Payment #" + paymentNumber,  // Description
+    "Amortization",     // Type
+    "Active",           // Status  
+    loanAmount,         // Principal amount
+    interestRate,       // APR percentage
+    monthlyPayment,     // Payment amount
+    interestPortion,    // Interest component
+    totalPaid,          // Cumulative total
+    termYears,          // Loan term
+    dateRange          // Start - End dates
+);
+
+String hash = hashSHA256(recordData);
+String outputLine = recordData + " | " + hash;
+```
+
+### 3.2.3 Import Validation Algorithm
+```java
+// Hash verification during import
+String[] parts = fileLine.split(" \\| ");
+String recordData = parts[0];
+String storedHash = parts[1];
+
+String calculatedHash = hashSHA256(recordData);
+boolean isValid = calculatedHash.equals(storedHash);
+
+ValidationResult result = new ValidationResult(
+    recordData, storedHash, calculatedHash, isValid
+);
+```
 | Filter by Status | `LoanDAO.java` | Filter loans by status |
 
 ### 3.1.3 Sorting Algorithms
